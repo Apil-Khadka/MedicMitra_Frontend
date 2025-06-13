@@ -1,75 +1,136 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// eslint-disable-next-line import/namespace
+import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { FontAwesome } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, useColorScheme, View } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function DashboardScreen() {
+    const { user } = useAuth();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
 
-export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+    const getUserDisplayName = () => {
+        if (!user) return 'User';
+
+        if (user.firstName || user.lastName) {
+            return `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        }
+
+        return user.email || 'User';
+    };
+
+    const quickActions = [
+        { title: 'My Tours', icon: 'map', color: '#4CAF50' },
+        { title: 'Favorites', icon: 'heart', color: '#F44336' },
+        { title: 'Bookings', icon: 'calendar', color: '#2196F3' },
+        { title: 'Messages', icon: 'envelope', color: '#9C27B0' },
+    ];
+
+    return (
+        <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={styles.header}>
+                <Text style={[styles.welcomeText, { color: colors.text }]}>
+                    Welcome back, {getUserDisplayName()}!
+                </Text>
+                <Text style={[styles.subtitle, { color: colors.text }]}>
+                    What would you like to do today?
+                </Text>
+            </View>
+
+            <View style={styles.quickActions}>
+                {quickActions.map((action, index) => (
+                    <TouchableOpacity
+                        key={index}
+                        style={[styles.actionCard, { backgroundColor: colors.card }]}
+                        onPress={() => {
+                            // Handle action press
+                            console.log(`Pressed ${action.title}`);
+                        }}>
+                        <View style={[styles.iconContainer, { backgroundColor: action.color }]}>
+                            <FontAwesome name={action.icon as any} size={24} color="white" />
+                        </View>
+                        <Text style={[styles.actionTitle, { color: colors.text }]}>{action.title}</Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            <View style={styles.recentSection}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent Activity</Text>
+                <View style={[styles.recentCard, { backgroundColor: colors.card }]}>
+                    <Text style={[styles.recentText, { color: colors.text }]}>
+                        No recent activity to show
+                    </Text>
+                </View>
+            </View>
+        </ScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    container: {
+        flex: 1,
+    },
+    header: {
+        padding: 20,
+        paddingTop: 40,
+    },
+    welcomeText: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 16,
+        opacity: 0.7,
+    },
+    quickActions: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        padding: 10,
+        justifyContent: 'space-between',
+    },
+    actionCard: {
+        width: '48%',
+        padding: 20,
+        borderRadius: 12,
+        marginBottom: 16,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    actionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    recentSection: {
+        padding: 20,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '600',
+        marginBottom: 16,
+    },
+    recentCard: {
+        padding: 20,
+        borderRadius: 12,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+    },
+    recentText: {
+        fontSize: 16,
+        opacity: 0.7,
+    },
 });
