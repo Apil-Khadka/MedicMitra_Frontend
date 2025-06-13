@@ -13,7 +13,7 @@ export default function Welcome() {
 
             <View style={styles.content}>
                 <Image
-                    source={require('../assets/images/logo.png')}
+                    source={require('../assets/images/MedicMitra1-react.png')}
                     style={styles.logo}
                     resizeMode="contain"
                 />
