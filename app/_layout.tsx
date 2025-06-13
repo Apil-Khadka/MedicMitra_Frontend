@@ -5,17 +5,19 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 function RootLayoutContent() {
     const colorScheme = useColorScheme();
-    const { isLoading } = useAuth();
+    const { isLoading: isAuthLoading } = useAuth();
+    const { isLoading: isLanguageLoading } = useLanguage();
     const [loaded] = useFonts({
         SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     });
 
-    if (!loaded || isLoading) {
+    if (!loaded || isAuthLoading || isLanguageLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                 <ActivityIndicator size="large" />
@@ -26,6 +28,7 @@ function RootLayoutContent() {
     return (
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
             <Stack>
+                <Stack.Screen name="language" options={{ headerShown: false }} />
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -39,8 +42,10 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
     return (
-        <AuthProvider>
-            <RootLayoutContent />
-        </AuthProvider>
+        <LanguageProvider>
+            <AuthProvider>
+                <RootLayoutContent />
+            </AuthProvider>
+        </LanguageProvider>
     );
 }

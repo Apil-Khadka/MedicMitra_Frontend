@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface FormErrors {
     email?: string;
@@ -14,6 +15,7 @@ interface FormErrors {
 export default function SignIn() {
     const insets = useSafeAreaInsets();
     const { signIn, isLoading } = useAuth();
+    const { language, translations: t } = useLanguage();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<FormErrors>({});
@@ -23,13 +25,13 @@ export default function SignIn() {
         const newErrors: FormErrors = {};
 
         if (!email.trim()) {
-            newErrors.email = 'Email is required';
+            newErrors.email = language === 'en' ? 'Email is required' : 'इमेल आवश्यक छ';
         } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = 'Please enter a valid email address';
+            newErrors.email = language === 'en' ? 'Please enter a valid email address' : 'कृपया मान्य इमेल ठेगाना प्रविष्ट गर्नुहोस्';
         }
 
         if (!password) {
-            newErrors.password = 'Password is required';
+            newErrors.password = language === 'en' ? 'Password is required' : 'पासवर्ड आवश्यक छ';
         }
 
         setErrors(newErrors);
@@ -46,94 +48,103 @@ export default function SignIn() {
             await signIn(email, password);
         } catch (error: any) {
             console.error('Error signing in:', error);
-            setApiError(error.message || 'Invalid email or password');
+            setApiError(error.message || (language === 'en' ? 'Invalid email or password' : 'अमान्य इमेल वा पासवर्ड'));
         }
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar style="dark" />
+        <>
+            <Stack.Screen
+                options={{
+                    headerShown: false,
+                    gestureEnabled: false, // Disable back gesture
+                }}
+            />
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                <StatusBar style="dark" />
 
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </TouchableOpacity>
-                <Text style={styles.title}>Sign In</Text>
-            </View>
-
-            <View style={styles.content}>
-                {apiError ? (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{apiError}</Text>
-                    </View>
-                ) : null}
-
-                <View style={styles.inputContainer}>
-                    <View>
-                        <TextInput
-                            style={[styles.input, errors.email && styles.inputError]}
-                            placeholder="Email"
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            value={email}
-                            onChangeText={(text) => {
-                                setEmail(text);
-                                if (errors.email) {
-                                    setErrors({ ...errors, email: undefined });
-                                }
-                            }}
-                        />
-                        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-                    </View>
-
-                    <View>
-                        <TextInput
-                            style={[styles.input, errors.password && styles.inputError]}
-                            placeholder="Password"
-                            secureTextEntry
-                            value={password}
-                            onChangeText={(text) => {
-                                setPassword(text);
-                                if (errors.password) {
-                                    setErrors({ ...errors, password: undefined });
-                                }
-                            }}
-                        />
-                        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-                    </View>
-                </View>
-
-                <TouchableOpacity style={styles.forgotPassword}>
-                    <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={styles.signInButton}
-                    onPress={handleSignIn}
-                    disabled={isLoading}
-                >
-                    {isLoading ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.signInButtonText}>Sign In</Text>
-                    )}
-                </TouchableOpacity>
-
-                <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>or continue with</Text>
-                    <View style={styles.dividerLine} />
-                </View>
-
-
-                <View style={styles.signUpContainer}>
-                    <Text style={styles.signUpText}>Don't have an account? </Text>
-                    <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)}>
-                        <Text style={styles.signUpLink}>Sign Up</Text>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.replace('/language' as any)} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#333" />
                     </TouchableOpacity>
+                    <Text style={styles.title}>{t[language].signIn}</Text>
+                </View>
+
+                <View style={styles.content}>
+                    {apiError ? (
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.errorText}>{apiError}</Text>
+                        </View>
+                    ) : null}
+
+                    <View style={styles.inputContainer}>
+                        <View>
+                            <TextInput
+                                style={[styles.input, errors.email && styles.inputError]}
+                                placeholder={t[language].email}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                value={email}
+                                onChangeText={(text) => {
+                                    setEmail(text);
+                                    if (errors.email) {
+                                        setErrors({ ...errors, email: undefined });
+                                    }
+                                }}
+                            />
+                            {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+                        </View>
+
+                        <View>
+                            <TextInput
+                                style={[styles.input, errors.password && styles.inputError]}
+                                placeholder={t[language].password}
+                                secureTextEntry
+                                value={password}
+                                onChangeText={(text) => {
+                                    setPassword(text);
+                                    if (errors.password) {
+                                        setErrors({ ...errors, password: undefined });
+                                    }
+                                }}
+                            />
+                            {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+                        </View>
+                    </View>
+
+                    <TouchableOpacity style={styles.forgotPassword}>
+                        <Text style={styles.forgotPasswordText}>{t[language].forgotPassword}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.signInButton}
+                        onPress={handleSignIn}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="#fff" />
+                        ) : (
+                            <Text style={styles.signInButtonText}>{t[language].signIn}</Text>
+                        )}
+                    </TouchableOpacity>
+
+                    <View style={styles.divider}>
+                        <View style={styles.dividerLine} />
+                        <Text style={styles.dividerText}>{language === 'en' ? 'or continue with' : 'वा यसबाट जारी राख्नुहोस्'}</Text>
+                        <View style={styles.dividerLine} />
+                    </View>
+
+                    <View style={styles.signUpContainer}>
+                        <Text style={styles.signUpText}>
+                            {language === 'en' ? "Don't have an account? " : 'खाता छैन? '}
+                        </Text>
+                        <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)}>
+                            <Text style={styles.signUpLink}>{t[language].signUp}</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
-        </View>
+        </>
     );
 }
 
