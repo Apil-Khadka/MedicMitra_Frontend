@@ -124,8 +124,6 @@ type AuthContextType = {
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
     signOut: () => Promise<void>;
-    signInWithGoogle: () => Promise<void>;
-    signInWithGithub: () => Promise<void>;
     handleAuthRedirect: (url: string) => Promise<void>;
 };
 
@@ -625,8 +623,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 signIn,
                 signUp,
                 signOut,
-                signInWithGoogle,
-                signInWithGithub,
                 handleAuthRedirect,
             }}
         >
