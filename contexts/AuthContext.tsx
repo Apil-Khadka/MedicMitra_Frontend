@@ -119,7 +119,6 @@ type User = {
 };
 
 type AuthContextType = {
-    useAuth: () => AuthContextType;
     user: User | null;
     isLoading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
@@ -619,7 +618,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return (
         <AuthContext.Provider
             value={{
-                useAuth,
                 user,
                 isLoading,
                 signIn,
