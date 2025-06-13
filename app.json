@@ -4,7 +4,7 @@
     "slug": "MedicMitra",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/MedicMitra1-react.png",
+    "icon": "./assets/images/MedicMitra11-react4.png",
     "scheme": "medicmitra",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-MedicMitra1-react.png",
+          "image": "./assets/images/splash-MedicMitra11-react4.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
