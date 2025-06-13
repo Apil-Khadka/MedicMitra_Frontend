@@ -1,45 +1,97 @@
-import { PropsWithChildren, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { StyleSheet, TouchableOpacity, useColorScheme, ViewStyle } from 'react-native';
+import Animated, {
+  FadeInDown,
+  FadeOutUp,
+  Layout,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring
+} from 'react-native-reanimated';
+import { BorderRadius, Colors, Shadows, Spacing } from '../constants/Colors';
+import ThemedText from './ThemedText';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+interface CollapsibleProps {
+  title: string;
+  children: React.ReactNode;
+  initiallyExpanded?: boolean;
+  style?: ViewStyle;
+}
 
-export function Collapsible({ children, title }: PropsWithChildren & { title: string }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const theme = useColorScheme() ?? 'light';
+export default function Collapsible({
+                                      title,
+                                      children,
+                                      initiallyExpanded = false,
+                                      style
+                                    }: CollapsibleProps) {
+  const [isExpanded, setIsExpanded] = useState(initiallyExpanded);
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  const rotation = useSharedValue(initiallyExpanded ? 180 : 0);
+
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded);
+    rotation.value = withSpring(isExpanded ? 0 : 180);
+  };
+
+  const animatedIconStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
 
   return (
-    <ThemedView>
-      <TouchableOpacity
-        style={styles.heading}
-        onPress={() => setIsOpen((value) => !value)}
-        activeOpacity={0.8}>
-        <IconSymbol
-          name="chevron.right"
-          size={18}
-          weight="medium"
-          color={theme === 'light' ? Colors.light.icon : Colors.dark.icon}
-          style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
-        />
+      <Animated.View
+          layout={Layout.springify()}
+          style={[
+            styles.container,
+            { backgroundColor: colors.card },
+            style
+          ]}
+      >
+        <TouchableOpacity
+            style={styles.header}
+            onPress={toggleExpand}
+            activeOpacity={0.7}
+        >
+          <ThemedText variant="h3" color="text">
+            {title}
+          </ThemedText>
+          <Animated.View style={animatedIconStyle}>
+            <Ionicons
+                name="chevron-down"
+                size={24}
+                color={colors.text}
+            />
+          </Animated.View>
+        </TouchableOpacity>
 
-        <ThemedText type="defaultSemiBold">{title}</ThemedText>
-      </TouchableOpacity>
-      {isOpen && <ThemedView style={styles.content}>{children}</ThemedView>}
-    </ThemedView>
+        {isExpanded && (
+            <Animated.View
+                entering={FadeInDown.duration(300).springify()}
+                exiting={FadeOutUp.duration(200)}
+                style={styles.content}
+            >
+              {children}
+            </Animated.View>
+        )}
+      </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  heading: {
+  container: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    ...Shadows.sm,
+  },
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
   },
   content: {
-    marginTop: 6,
-    marginLeft: 24,
+    padding: Spacing.lg,
+    paddingTop: 0,
   },
 });

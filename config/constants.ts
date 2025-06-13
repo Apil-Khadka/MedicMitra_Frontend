@@ -15,12 +15,12 @@ export const AUTH_CONFIG = {
         USER: 'user',
     },
     AUTH_ENDPOINTS: {
-        SIGNIN: '/auth/signin',
-        SIGNUP: '/auth/signup',
-        REFRESH: '/auth/refresh',
-        EXCHANGE: '/auth/exchange',
-        LOGOUT: '/api/auth/logout',
-        USER_ME: '/api/v1/user/me',
+        SIGNIN: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/auth/signin`,
+        SIGNUP: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/auth/signup`,
+        REFRESH: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/refresh`,
+        LOGOUT: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/logout`,
+        USER_ME: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/me`,
+        USER_UPDATE: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/update`,
     },
 } as const;
 
@@ -40,4 +40,4 @@ export const OAUTH_CONFIG = {
 export const PLATFORM_CONFIG = {
     IS_WEB: Platform.OS === 'web',
     IS_NATIVE: Platform.OS === 'android' || Platform.OS === 'ios',
-} as const; 
+} as const;

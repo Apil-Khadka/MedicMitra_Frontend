@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { LanguageProvider, useLanguage } from '../contexts/LanguageContext';
+import { MenuProvider } from 'react-native-popup-menu';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -32,7 +33,6 @@ function RootLayoutContent() {
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="auth/success" options={{ headerShown: false }} />
                 <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />
@@ -42,10 +42,12 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
     return (
-        <LanguageProvider>
-            <AuthProvider>
-                <RootLayoutContent />
-            </AuthProvider>
-        </LanguageProvider>
+        <MenuProvider>
+            <LanguageProvider>
+                <AuthProvider>
+                    <RootLayoutContent />
+                </AuthProvider>
+            </LanguageProvider>
+        </MenuProvider>
     );
 }

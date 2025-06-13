@@ -90,6 +90,7 @@ export const translations = {
         createAccount: 'Create Account',
         confirmPassword: 'Confirm Password',
         continue: 'Continue',
+        name: 'Full Name',
     },
     ne: {
         welcome: 'मेडिकमित्रामा स्वागत छ',
@@ -107,5 +108,6 @@ export const translations = {
         createAccount: 'खाता सिर्जना गर्नुहोस्',
         confirmPassword: 'पासवर्ड पुष्टि गर्नुहोस्',
         continue: 'जारी राख्नुहोस्',
+        name: 'पूरा नाम',
     },
 };

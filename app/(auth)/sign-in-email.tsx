@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -12,15 +14,42 @@ interface FormErrors {
     password?: string;
 }
 
+interface Styles {
+    container: ViewStyle;
+    header: ViewStyle;
+    backButton: ViewStyle;
+    title: TextStyle;
+    content: ViewStyle;
+    inputContainer: ViewStyle;
+    input: TextStyle;
+    inputError: TextStyle;
+    errorContainer: ViewStyle;
+    errorText: TextStyle;
+    forgotPassword: ViewStyle;
+    forgotPasswordText: TextStyle;
+    signInButton: ViewStyle;
+    signInButtonText: TextStyle;
+    signUpContainer: ViewStyle;
+    signUpText: TextStyle;
+    signUpLink: TextStyle;
+    passwordContainer: ViewStyle;
+    passwordInput: TextStyle;
+    visibilityToggle: ViewStyle;
+}
+
 export default function SignInEmail() {
     const insets = useSafeAreaInsets();
     const { signIn } = useAuth();
-    const { language, translations: t, setLanguage } = useLanguage();
+    const { language, translations: t } = useLanguage();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<FormErrors>({});
     const [apiError, setApiError] = useState<string>('');
     const [isVerifying, setIsVerifying] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
@@ -40,246 +69,259 @@ export default function SignInEmail() {
     };
 
     const handleSignIn = async () => {
-        setApiError('');
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         setIsVerifying(true);
+        setApiError('');
+
         try {
-            // In a real app, this would trigger Google verification
-            // For now, we'll simulate it
-            await new Promise(resolve => setTimeout(resolve, 2000));
             await signIn(email, password);
-        } catch (error: any) {
-            console.error('Error signing in:', error);
-            setApiError(error.message || (language === 'en' ? 'Invalid email or password' : 'अमान्य इमेल वा पासवर्ड'));
+        } catch (error) {
+            setApiError(language === 'en' ? 'Invalid email or password' : 'अमान्य इमेल वा पासवर्ड');
         } finally {
             setIsVerifying(false);
         }
     };
 
-    const renderLanguageSelector = () => (
-        <View style={styles.languageContainer}>
-        <TouchableOpacity
-            style={[styles.languageButton, language === 'en' && styles.languageButtonActive]}
-    onPress={() => setLanguage('en')}
->
-    <Text style={[styles.languageButtonText, language === 'en' && styles.languageButtonTextActive]}>
-    {t.en.english}
-    </Text>
-    </TouchableOpacity>
-    <TouchableOpacity
-    style={[styles.languageButton, language === 'ne' && styles.languageButtonActive]}
-    onPress={() => setLanguage('ne')}
->
-    <Text style={[styles.languageButtonText, language === 'ne' && styles.languageButtonTextActive]}>
-    {t.ne.nepali}
-    </Text>
-    </TouchableOpacity>
-    </View>
-);
+    const togglePasswordVisibility = () => {
+        setShowPassword(!showPassword);
+    };
+
+    const animatedIconStyle = useAnimatedStyle(() => {
+        return {
+            transform: [
+                {
+                    scale: withSpring(showPassword ? 1.2 : 1, {
+                        damping: 10,
+                        stiffness: 100,
+                    }),
+                },
+            ],
+        };
+    });
 
     return (
         <>
             <Stack.Screen
                 options={{
-        headerShown: false,
-            gestureEnabled: false,
-    }}
-    />
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-    <StatusBar style="dark" />
+                    headerShown: false,
+                    gestureEnabled: false,
+                }}
+            />
+            <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-    <View style={styles.header}>
-    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-    <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.title}>{t[language].signIn}</Text>
-        </View>
-
-    {renderLanguageSelector()}
-
-    <View style={styles.content}>
-        {apiError ? (
-                <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{apiError}</Text>
-                    </View>
-            ) : null}
-
-        <View style={styles.inputContainer}>
-    <View>
-        <TextInput
-            style={[styles.input, errors.email && styles.inputError]}
-    placeholder={t[language].email}
-    keyboardType="email-address"
-    autoCapitalize="none"
-    value={email}
-    onChangeText={(text) => {
-        setEmail(text);
-        if (errors.email) {
-            setErrors({ ...errors, email: undefined });
-        }
-    }}
-    />
-    {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-    </View>
-
-    <View>
-    <TextInput
-        style={[styles.input, errors.password && styles.inputError]}
-        placeholder={t[language].password}
-        secureTextEntry
-        value={password}
-        onChangeText={(text) => {
-        setPassword(text);
-        if (errors.password) {
-            setErrors({ ...errors, password: undefined });
-        }
-    }}
-        />
-        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-            </View>
-            </View>
-
-            <TouchableOpacity style={styles.forgotPassword}>
-        <Text style={styles.forgotPasswordText}>{t[language].forgotPassword}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-            style={styles.signInButton}
-            onPress={handleSignIn}
-            disabled={isVerifying}
+                <Animated.View
+                    entering={FadeInDown.duration(600).springify()}
+                    style={styles.header}
                 >
-                {isVerifying ? (
-                        <ActivityIndicator color="#fff" />
-                    ) : (
-                        <Text style={styles.signInButtonText}>
-                        {language === 'en' ? 'Sign in with Google' : 'गुगलबाट साइन इन गर्नुहोस्'}
-                </Text>
-        )}
-            </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color={colors.text} />
+                    </TouchableOpacity>
+                    <Text style={[styles.title, { color: colors.text }]}>{t[language].signIn}</Text>
+                </Animated.View>
 
-            <View style={styles.signUpContainer}>
-        <Text style={styles.signUpText}>
-        {language === 'en' ? "Don't have an account? " : 'खाता छैन? '}
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)}>
-            <Text style={styles.signUpLink}>{t[language].signUp}</Text>
-                </TouchableOpacity>
-                </View>
-                </View>
-                </View>
-                </>
-        );
-        }
+                <View style={styles.content}>
+                    {apiError ? (
+                        <Animated.View
+                            entering={FadeInDown.duration(400)}
+                            style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}
+                        >
+                            <Text style={[styles.errorText, { color: colors.error }]}>{apiError}</Text>
+                        </Animated.View>
+                    ) : null}
 
-        const styles = StyleSheet.create({
-            container: {
-                flex: 1,
-                backgroundColor: '#fff',
-            },
-            header: {
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 20,
-                paddingVertical: 15,
-            },
-            backButton: {
-                marginRight: 15,
-            },
-            title: {
-                fontSize: 24,
-                fontWeight: 'bold',
-                color: '#333',
-            },
-            languageContainer: {
-                flexDirection: 'row',
-                justifyContent: 'center',
-                paddingVertical: 10,
-                gap: 10,
-            },
-            languageButton: {
-                paddingHorizontal: 20,
-                paddingVertical: 8,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: '#007AFF',
-            },
-            languageButtonActive: {
-                backgroundColor: '#007AFF',
-            },
-            languageButtonText: {
-                color: '#007AFF',
-                fontSize: 14,
-            },
-            languageButtonTextActive: {
-                color: '#fff',
-            },
-            content: {
-                flex: 1,
-                paddingHorizontal: 20,
-                paddingTop: 20,
-            },
-            inputContainer: {
-                gap: 15,
-            },
-            input: {
-                backgroundColor: '#f5f5f5',
-                paddingHorizontal: 15,
-                paddingVertical: 12,
-                borderRadius: 10,
-                fontSize: 16,
-                borderWidth: 1,
-                borderColor: '#e0e0e0',
-            },
-            inputError: {
-                borderColor: '#ff3b30',
-            },
-            errorContainer: {
-                backgroundColor: '#ffebee',
-                padding: 10,
-                borderRadius: 8,
-                marginBottom: 15,
-            },
-            errorText: {
-                color: '#ff3b30',
-                fontSize: 12,
-                marginTop: 4,
-            },
-            forgotPassword: {
-                alignSelf: 'flex-end',
-                marginTop: 10,
-            },
-            forgotPasswordText: {
-                color: '#007AFF',
-                fontSize: 14,
-            },
-            signInButton: {
-                backgroundColor: '#007AFF',
-                paddingVertical: 15,
-                borderRadius: 10,
-                alignItems: 'center',
-                marginTop: 20,
-            },
-            signInButtonText: {
-                color: '#fff',
-                fontSize: 16,
-                fontWeight: '600',
-            },
-            signUpContainer: {
-                flexDirection: 'row',
-                justifyContent: 'center',
-                marginTop: 'auto',
-                paddingBottom: 20,
-            },
-            signUpText: {
-                color: '#666',
-                fontSize: 14,
-            },
-            signUpLink: {
-                color: '#007AFF',
-                fontSize: 14,
-                fontWeight: '600',
-            },
-        });
+                    <Animated.View
+                        entering={FadeInUp.delay(200).duration(600).springify()}
+                        style={styles.inputContainer}
+                    >
+                        <View>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    {
+                                        backgroundColor: colors.inputBackground,
+                                        borderColor: errors.email ? colors.error : colors.inputBorder,
+                                        color: colors.text
+                                    }
+                                ]}
+                                placeholder={t[language].email}
+                                placeholderTextColor={colors.textSecondary}
+                                value={email}
+                                onChangeText={setEmail}
+                                autoCapitalize="none"
+                                keyboardType="email-address"
+                                autoComplete="email"
+                            />
+                            {errors.email ? (
+                                <Text style={[styles.errorText, { color: colors.error }]}>{errors.email}</Text>
+                            ) : null}
+                        </View>
+
+                        <View>
+                            <View style={styles.passwordContainer}>
+                                <TextInput
+                                    style={[
+                                        styles.input,
+                                        styles.passwordInput,
+                                        {
+                                            backgroundColor: colors.inputBackground,
+                                            borderColor: errors.password ? colors.error : colors.inputBorder,
+                                            color: colors.text
+                                        }
+                                    ]}
+                                    placeholder={t[language].password}
+                                    placeholderTextColor={colors.textSecondary}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
+                                    autoComplete="password"
+                                />
+                                <TouchableOpacity
+                                    style={styles.visibilityToggle}
+                                    onPress={togglePasswordVisibility}
+                                >
+                                    <Animated.View style={animatedIconStyle}>
+                                        <Ionicons
+                                            name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                            size={24}
+                                            color={colors.textSecondary}
+                                        />
+                                    </Animated.View>
+                                </TouchableOpacity>
+                            </View>
+                            {errors.password ? (
+                                <Text style={[styles.errorText, { color: colors.error }]}>{errors.password}</Text>
+                            ) : null}
+                        </View>
+
+                        <TouchableOpacity style={styles.forgotPassword}>
+                            <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
+                                {t[language].forgotPassword}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.signInButton,
+                                { backgroundColor: colors.buttonPrimary },
+                                isVerifying && { opacity: 0.7 }
+                            ]}
+                            onPress={handleSignIn}
+                            disabled={isVerifying}
+                        >
+                            {isVerifying ? (
+                                <ActivityIndicator color={colors.buttonText} />
+                            ) : (
+                                <Text style={[styles.signInButtonText, { color: colors.buttonText }]}>
+                                    {t[language].signIn}
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </Animated.View>
+
+                    <Animated.View
+                        entering={FadeInUp.delay(400).duration(600).springify()}
+                        style={styles.signUpContainer}
+                    >
+                        <Text style={[styles.signUpText, { color: colors.textSecondary }]}>
+                            {language === 'en' ? "Don't have an account? " : 'खाता छैन? '}
+                        </Text>
+                        <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)}>
+                            <Text style={[styles.signUpLink, { color: colors.primary }]}>{t[language].signUp}</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </View>
+        </>
+    );
+}
+
+const styles = StyleSheet.create<Styles>({
+    container: {
+        flex: 1,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.lg,
+    },
+    backButton: {
+        marginRight: Spacing.md,
+    },
+    title: {
+        ...Typography.h1,
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: Spacing.lg,
+        paddingTop: Spacing.xl,
+    },
+    inputContainer: {
+        gap: Spacing.md,
+    },
+    input: {
+        ...Typography.body1,
+        paddingHorizontal: Spacing.lg,
+        paddingVertical: Spacing.md,
+        borderRadius: BorderRadius.lg,
+        borderWidth: 1,
+    },
+    inputError: {
+        borderColor: Colors.light.error,
+    },
+    errorContainer: {
+        padding: Spacing.md,
+        borderRadius: BorderRadius.md,
+        marginBottom: Spacing.lg,
+    },
+    errorText: {
+        ...Typography.caption,
+        marginTop: Spacing.xs,
+    },
+    forgotPassword: {
+        alignSelf: 'flex-end',
+        marginTop: Spacing.md,
+    },
+    forgotPasswordText: {
+        ...Typography.body2,
+    },
+    signInButton: {
+        paddingVertical: Spacing.lg,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        marginTop: Spacing.xl,
+        ...Shadows.sm,
+    },
+    signInButtonText: {
+        ...Typography.button,
+    },
+    signUpContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginTop: 'auto',
+        paddingBottom: Spacing.xl,
+    },
+    signUpText: {
+        ...Typography.body2,
+    },
+    signUpLink: {
+        ...Typography.body2,
+        fontWeight: '600',
+    },
+    passwordContainer: {
+        position: 'relative',
+    },
+    passwordInput: {
+        paddingRight: 48, // Make room for the icon
+    },
+    visibilityToggle: {
+        position: 'absolute',
+        right: Spacing.md,
+        top: '50%',
+        transform: [{ translateY: -12 }],
+        padding: Spacing.xs,
+        zIndex: 1,
+    },
+}); 

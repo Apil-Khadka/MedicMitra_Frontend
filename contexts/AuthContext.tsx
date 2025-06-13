@@ -256,22 +256,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error("Login failed");
             }
 
-            const { uuid } = await response.json();
-
-            // Exchange UUID for tokens
-            const tokenResponse = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.EXCHANGE}?uuid=${uuid}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: PLATFORM_CONFIG.IS_WEB ? 'include' : 'omit',
-            });
-
-            if (!tokenResponse.ok) {
-                throw new Error("Failed to exchange UUID for tokens");
-            }
-
-            const { access_token, refresh_token } = await tokenResponse.json();
+            const json = await response.json();
+            const { access_token, refresh_token } = json.data;
+            console.error('access_token', access_token);
+            console.error('refresh_token', refresh_token);
 
             // Store tokens using platform-specific storage
             await storage.setAccessToken(access_token);
@@ -285,8 +273,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error("Failed to get user info");
             }
 
+
             const userData = await userResponse.json();
-            await storage.setUser(userData);
+
+            console.error('userData', userData);
+
+            await storage.setUser(userData.data);
             setUser(userData);
 
             router.replace("/(tabs)");
@@ -314,22 +306,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 throw new Error("Registration failed");
             }
 
-            const { uuid } = await response.json();
 
-            // Exchange UUID for tokens
-            const tokenResponse = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.EXCHANGE}?uuid=${uuid}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                credentials: PLATFORM_CONFIG.IS_WEB ? 'include' : 'omit',
-            });
 
-            if (!tokenResponse.ok) {
-                throw new Error("Failed to exchange UUID for tokens");
-            }
-
-            const { access_token, refresh_token } = await tokenResponse.json();
+            const json = await response.json();
+            const { access_token, refresh_token } = json.data;
+            console.error('access_token', access_token);
+            console.error('refresh_token', refresh_token);
 
             // Store tokens using platform-specific storage
             await storage.setAccessToken(access_token);
@@ -344,7 +326,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const userData = await userResponse.json();
-            await storage.setUser(userData);
+
+            await storage.setUser(userData.data);
             setUser(userData);
 
             router.replace("/(tabs)");
@@ -454,8 +437,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     throw new Error("Failed to exchange UUID for tokens");
                 }
 
-                const { access_token, refresh_token } = await tokenResponse.json();
-
+                const json = await tokenResponse.json();
+                const { access_token, refresh_token } = json.data;
                 // Store tokens using platform-specific storage
                 await storage.setAccessToken(access_token);
                 if (!PLATFORM_CONFIG.IS_WEB) {

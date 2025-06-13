@@ -1,24 +1,52 @@
-import { Href, Link } from 'expo-router';
-import { openBrowserAsync } from 'expo-web-browser';
-import { type ComponentProps } from 'react';
-import { Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
+import { StyleSheet, TouchableOpacity, useColorScheme, ViewStyle } from 'react-native';
+import { Colors, Spacing } from '../constants/Colors';
+import ThemedText from './ThemedText';
 
-type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: Href & string };
-
-export function ExternalLink({ href, ...rest }: Props) {
-  return (
-    <Link
-      target="_blank"
-      {...rest}
-      href={href}
-      onPress={async (event) => {
-        if (Platform.OS !== 'web') {
-          // Prevent the default behavior of linking to the default browser on native.
-          event.preventDefault();
-          // Open the link in an in-app browser.
-          await openBrowserAsync(href);
-        }
-      }}
-    />
-  );
+interface ExternalLinkProps {
+    href: string;
+    children: React.ReactNode;
+    style?: ViewStyle;
 }
+
+export default function ExternalLink({ href, children, style }: ExternalLinkProps) {
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
+
+    return (
+        <TouchableOpacity
+            style={[styles.container, style]}
+            onPress={() => Linking.openURL(href)}
+            activeOpacity={0.7}
+        >
+            <ThemedText
+                variant="body2"
+                color="primary"
+                style={styles.text}
+            >
+                {children}
+            </ThemedText>
+            <Ionicons
+                name="open-outline"
+                size={16}
+                color={colors.primary}
+                style={styles.icon}
+            />
+        </TouchableOpacity>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: Spacing.xs,
+    },
+    text: {
+        textDecorationLine: 'underline',
+    },
+    icon: {
+        marginTop: 2,
+    },
+});

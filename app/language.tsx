@@ -1,12 +1,17 @@
+import { translations, useLanguage } from '@/contexts/LanguageContext';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { translations, useLanguage } from '@/contexts/LanguageContext';
+import ThemedText from '../components/ThemedText';
+import { BorderRadius, Colors, Shadows, Spacing } from '../constants/Colors';
 
 export default function LanguageSelection() {
     const insets = useSafeAreaInsets();
     const { language, setLanguage } = useLanguage();
+    const colorScheme = useColorScheme();
+    const colors = Colors[colorScheme ?? 'light'];
 
     const handleLanguageSelect = async (selectedLanguage: 'en' | 'ne') => {
         await setLanguage(selectedLanguage);
@@ -14,41 +19,85 @@ export default function LanguageSelection() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar style="dark" />
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+            <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
-            <View style={styles.content}>
-                <Image
-                    source={require('../assets/images/MedicMitra11-react4.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
+            <Animated.View
+                entering={FadeInDown.duration(600).springify()}
+                style={styles.content}
+            >
+                <Animated.View
+                    entering={FadeInUp.delay(200).duration(600).springify()}
+                    style={styles.logoContainer}
+                >
+                    <Image
+                        source={require('../assets/images/MedicMitra11-react4.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </Animated.View>
 
-                <Text style={styles.title}>{translations[language].welcome}</Text>
-                <Text style={styles.subtitle}>{translations[language].subtitle}</Text>
+                <Animated.View
+                    entering={FadeInUp.delay(400).duration(600).springify()}
+                    style={styles.textContainer}
+                >
+                    <ThemedText variant="h1" color="text" style={styles.title}>
+                        {translations[language].welcome}
+                    </ThemedText>
+                    <ThemedText variant="body1" color="textSecondary" style={styles.subtitle}>
+                        {translations[language].subtitle}
+                    </ThemedText>
+                </Animated.View>
 
-                <Text style={styles.languageTitle}>{translations[language].selectLanguage}</Text>
+                <Animated.View
+                    entering={FadeInUp.delay(600).duration(600).springify()}
+                    style={styles.languageContainer}
+                >
+                    <ThemedText variant="h3" color="text" style={styles.languageTitle}>
+                        {translations[language].selectLanguage}
+                    </ThemedText>
 
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                        style={[styles.button, language === 'en' && styles.selectedButton]}
-                        onPress={() => handleLanguageSelect('en')}
-                    >
-                        <Text style={[styles.buttonText, language === 'en' && styles.selectedButtonText]}>
-                            {translations[language].english}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={[
+                                styles.languageButton,
+                                language === 'en' && styles.languageButtonActive,
+                                {
+                                    backgroundColor: language === 'en' ? colors.primary : colors.card,
+                                    borderColor: colors.border,
+                                } as ViewStyle
+                            ]}
+                            onPress={() => handleLanguageSelect('en')}
+                        >
+                            <ThemedText
+                                variant="button"
+                                color={language === 'en' ? 'buttonText' : 'text'}
+                            >
+                                {translations[language].english}
+                            </ThemedText>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.button, language === 'ne' && styles.selectedButton]}
-                        onPress={() => handleLanguageSelect('ne')}
-                    >
-                        <Text style={[styles.buttonText, language === 'ne' && styles.selectedButtonText]}>
-                            {translations[language].nepali}
-                        </Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
+                        <TouchableOpacity
+                            style={[
+                                styles.languageButton,
+                                language === 'ne' && styles.languageButtonActive,
+                                {
+                                    backgroundColor: language === 'ne' ? colors.primary : colors.card,
+                                    borderColor: colors.border,
+                                } as ViewStyle
+                            ]}
+                            onPress={() => handleLanguageSelect('ne')}
+                        >
+                            <ThemedText
+                                variant="button"
+                                color={language === 'ne' ? 'buttonText' : 'text'}
+                            >
+                                {translations[language].nepali}
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            </Animated.View>
         </View>
     );
 }
@@ -56,60 +105,51 @@ export default function LanguageSelection() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     content: {
         flex: 1,
-        alignItems: 'center',
+        padding: Spacing.xl,
         justifyContent: 'center',
-        paddingHorizontal: 20,
+        alignItems: 'center',
+        gap: Spacing.xl,
+    },
+    logoContainer: {
+        width: '100%',
+        aspectRatio: 2,
+        marginBottom: Spacing.xl,
     },
     logo: {
-        width: 120,
-        height: 120,
-        marginBottom: 20,
+        width: '100%',
+        height: '100%',
+    },
+    textContainer: {
+        alignItems: 'center',
+        gap: Spacing.sm,
     },
     title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 8,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 40,
         textAlign: 'center',
     },
+    languageContainer: {
+        width: '100%',
+        gap: Spacing.lg,
+    },
     languageTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 20,
         textAlign: 'center',
     },
     buttonContainer: {
-        width: '100%',
-        gap: 12,
+        gap: Spacing.md,
     },
-    button: {
-        backgroundColor: '#f0f0f0',
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        borderRadius: 12,
-        alignItems: 'center',
+    languageButton: {
+        padding: Spacing.lg,
+        borderRadius: BorderRadius.lg,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        alignItems: 'center',
+        ...Shadows.sm,
     },
-    selectedButton: {
-        backgroundColor: '#007AFF',
-        borderColor: '#007AFF',
-    },
-    buttonText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#333',
-    },
-    selectedButtonText: {
-        color: '#fff',
+    languageButtonActive: {
+        ...Shadows.md,
     },
 });
