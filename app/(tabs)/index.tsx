@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/namespace
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { FontAwesome } from '@expo/vector-icons';
