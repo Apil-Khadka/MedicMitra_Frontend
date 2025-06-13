@@ -18,8 +18,8 @@ export default function Welcome() {
                     resizeMode="contain"
                 />
 
-                <Text style={styles.title}>Welcome to Toura</Text>
-                <Text style={styles.subtitle}>Your Personal Tourist Guide</Text>
+                <Text style={styles.title}>Welcome to MedicMitra</Text>
+                <Text style={styles.subtitle}>Your Digital Health Assistant</Text>
 
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity
