@@ -22,8 +22,8 @@ export const AUTH_CONFIG = {
         LOGOUT: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/logout`,
         USER_ME: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/me`,
         USER_UPDATE: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/update`,
-        FETCH_ALL: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/fetch-all`,
-
+        FETCH_ALL_TOPICS: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/topics/all`,
+        FETCH_MEDICINES_BY_TOPIC: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/medicines/topic`,
     },
 } as const;
 
