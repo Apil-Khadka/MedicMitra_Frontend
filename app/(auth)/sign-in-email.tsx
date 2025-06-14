@@ -3,7 +3,7 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
-import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
@@ -50,6 +50,11 @@ export default function SignInEmail() {
     const [apiError, setApiError] = useState<string>('');
     const [isVerifying, setIsVerifying] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const buttonScale = useSharedValue(1);
+
+    const animatedButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: buttonScale.value }],
+    }));
 
     const validateForm = (): boolean => {
         const newErrors: FormErrors = {};
@@ -68,9 +73,16 @@ export default function SignInEmail() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSignIn = async () => {
+    const handleSignIn = () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 12, stiffness: 300 }),
+            withSpring(1, { damping: 15, stiffness: 300 })
+        );
         if (!validateForm()) return;
+        handleSubmit();
+    };
 
+    const handleSubmit = async () => {
         setIsVerifying(true);
         setApiError('');
 
@@ -124,7 +136,7 @@ export default function SignInEmail() {
                 <View style={styles.content}>
                     {apiError ? (
                         <Animated.View
-                            entering={FadeInDown.duration(400)}
+                            entering={FadeInDown.duration(300)}
                             style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}
                         >
                             <Text style={[styles.errorText, { color: colors.error }]}>{apiError}</Text>
@@ -132,7 +144,7 @@ export default function SignInEmail() {
                     ) : null}
 
                     <Animated.View
-                        entering={FadeInUp.delay(200).duration(600).springify()}
+                        entering={FadeInUp.delay(100).duration(500).springify()}
                         style={styles.inputContainer}
                     >
                         <View>
@@ -221,7 +233,7 @@ export default function SignInEmail() {
                     </Animated.View>
 
                     <Animated.View
-                        entering={FadeInUp.delay(400).duration(600).springify()}
+                        entering={FadeInUp.delay(200).duration(500).springify()}
                         style={styles.signUpContainer}
                     >
                         <Text style={[styles.signUpText, { color: colors.textSecondary }]}>

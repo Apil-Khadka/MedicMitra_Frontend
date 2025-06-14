@@ -1,14 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import { StyleSheet, Text, TextStyle, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
-import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import React, { useCallback } from 'react';
+import { Pressable, StyleSheet, Text, TextStyle, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
+import Animated, {
+    cancelAnimation,
+    FadeInDown,
+    FadeInUp,
+    interpolateColor,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../../constants/Colors';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-type SignInMethod = 'email' | 'phone';
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface Styles {
     container: ViewStyle;
@@ -25,60 +34,58 @@ interface Styles {
     signUpContainer: ViewStyle;
     signUpText: TextStyle;
     signUpLink: TextStyle;
-    dividerContainer: ViewStyle;
-    divider: ViewStyle;
-    dividerText: TextStyle;
-    socialButtonsContainer: ViewStyle;
-    socialButton: ViewStyle;
-    socialButtonIcon: ViewStyle;
-    socialButtonText: TextStyle;
+    logoContainer: ViewStyle;
+    logo: ViewStyle;
 }
 
 export default function SignIn() {
     const insets = useSafeAreaInsets();
-    const { language, translations: t } = useLanguage();
+    const { language } = useLanguage();
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const scale = useSharedValue(1);
+    const buttonScale = useSharedValue(1);
 
-    const handleMethodSelect = (method: SignInMethod) => {
-        router.push(method === 'email' ? '/(auth)/sign-in-email' : '/(auth)/sign-in-phone' as any);
+    const handleEmailSignIn = () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 12, stiffness: 300 }),
+            withSpring(1, { damping: 15, stiffness: 300 })
+        );
+        setTimeout(() => {
+            router.push('/(auth)/sign-in-email' as any);
+        }, 150);
     };
 
-    const handleGoogleSignIn = () => {
-        // TODO: Implement Google sign-in
-        console.log('Google sign-in pressed');
-    };
-
-    const handleGithubSignIn = () => {
-        // TODO: Implement GitHub sign-in
-        console.log('GitHub sign-in pressed');
-    };
-
-    const animatedGoogleStyle = useAnimatedStyle(() => {
+    const animatedButtonStyle = useAnimatedStyle(() => {
         return {
-            transform: [
-                {
-                    scale: withSpring(1, {
-                        damping: 10,
-                        stiffness: 100,
-                    }),
-                },
-            ],
+            transform: [{ scale: buttonScale.value }],
+            backgroundColor: interpolateColor(
+                buttonScale.value,
+                [0.95, 1],
+                [colors.primary + '20', colors.card]
+            ),
         };
     });
 
-    const animatedGithubStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    scale: withSpring(1, {
-                        damping: 10,
-                        stiffness: 100,
-                    }),
-                },
-            ],
-        };
-    });
+    const animatedLogoStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }]
+    }));
+
+    const animateLogo = useCallback(() => {
+        // Cancel any ongoing animation
+        cancelAnimation(scale);
+        // Reset to initial state
+        scale.value = 1;
+        // Start welcome animation
+        scale.value = withSequence(
+            withSpring(1.1, { damping: 10, stiffness: 300 }),
+            withSpring(1, { damping: 12, stiffness: 300 })
+        );
+    }, []);
+
+    React.useEffect(() => {
+        animateLogo();
+    }, [animateLogo]);
 
     return (
         <>
@@ -92,27 +99,52 @@ export default function SignIn() {
                 <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
                 <Animated.View
-                    entering={FadeInDown.duration(600).springify()}
+                    entering={FadeInDown.duration(500).springify()}
                     style={styles.header}
                 >
-                    <Text style={[styles.title, { color: colors.text }]}>{t[language].signIn}</Text>
-                    <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-                        {language === 'en' ? 'Welcome back! Please sign in to continue.' : 'पुनः स्वागत छ! कृपया जारी राख्न साइन इन गर्नुहोस्।'}
-                    </Text>
+                    <Animated.View
+                        style={[styles.logoContainer, animatedLogoStyle]}
+                        entering={FadeInDown.delay(100).duration(500).springify()}
+                    >
+                        <View style={[styles.logo, { backgroundColor: colors.primary }]}>
+                            <Ionicons name="medical" size={32} color={colors.buttonText} />
+                        </View>
+                    </Animated.View>
+                    <Animated.Text
+                        entering={FadeInDown.delay(200).duration(500).springify()}
+                        style={[styles.title, { color: colors.text }]}
+                    >
+                        {language === 'en' ? 'Welcome Back' : 'पुनः स्वागत छ'}
+                    </Animated.Text>
+                    <Animated.Text
+                        entering={FadeInDown.delay(300).duration(500).springify()}
+                        style={[styles.subtitle, { color: colors.textSecondary }]}
+                    >
+                        {language === 'en' ? 'Sign in to continue' : 'जारी राख्न साइन इन गर्नुहोस्'}
+                    </Animated.Text>
                 </Animated.View>
 
                 <View style={styles.content}>
                     <Animated.View
-                        entering={FadeInUp.delay(200).duration(600).springify()}
+                        entering={FadeInUp.delay(400).duration(500).springify()}
                         style={styles.methodContainer}
                     >
-                        <TouchableOpacity
-                            style={[styles.methodButton, { backgroundColor: colors.card }]}
-                            onPress={() => handleMethodSelect('email')}
+                        <AnimatedPressable
+                            style={[styles.methodButton, animatedButtonStyle]}
+                            onPress={handleEmailSignIn}
+                            android_ripple={{ color: colors.primary + '20', radius: 200 }}
                         >
-                            <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
+                            <Animated.View
+                                style={[
+                                    styles.iconContainer,
+                                    { backgroundColor: colors.primary },
+                                    useAnimatedStyle(() => ({
+                                        transform: [{ scale: withSpring(buttonScale.value * 1.1) }]
+                                    }))
+                                ]}
+                            >
                                 <Ionicons name="mail" size={24} color={colors.buttonText} />
-                            </View>
+                            </Animated.View>
                             <View style={styles.methodTextContainer}>
                                 <Text style={[styles.methodButtonText, { color: colors.text }]}>
                                     {language === 'en' ? 'Sign in with Email' : 'इमेलबाट साइन इन गर्नुहोस्'}
@@ -121,75 +153,23 @@ export default function SignIn() {
                                     {language === 'en' ? 'Use your email and password' : 'आफ्नो इमेल र पासवर्ड प्रयोग गर्नुहोस्'}
                                 </Text>
                             </View>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.methodButton, { backgroundColor: colors.card }]}
-                            onPress={() => handleMethodSelect('phone')}
-                        >
-                            <View style={[styles.iconContainer, { backgroundColor: colors.primary }]}>
-                                <Ionicons name="phone-portrait" size={24} color={colors.buttonText} />
-                            </View>
-                            <View style={styles.methodTextContainer}>
-                                <Text style={[styles.methodButtonText, { color: colors.text }]}>
-                                    {language === 'en' ? 'Sign in with Phone' : 'फोनबाट साइन इन गर्नुहोस्'}
-                                </Text>
-                                <Text style={[styles.methodButtonSubtext, { color: colors.textSecondary }]}>
-                                    {language === 'en' ? 'Use your phone number' : 'आफ्नो फोन नम्बर प्रयोग गर्नुहोस्'}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
+                        </AnimatedPressable>
                     </Animated.View>
 
                     <Animated.View
-                        entering={FadeInUp.delay(400).duration(600).springify()}
-                        style={styles.dividerContainer}
-                    >
-                        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                        <Text style={[styles.dividerText, { color: colors.textSecondary }]}>
-                            {language === 'en' ? 'or continue with' : 'वा यसबाट जारी राख्नुहोस्'}
-                        </Text>
-                        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                    </Animated.View>
-
-                    <Animated.View
-                        entering={FadeInUp.delay(600).duration(600).springify()}
-                        style={styles.socialButtonsContainer}
-                    >
-                        <TouchableOpacity
-                            style={[styles.socialButton, { backgroundColor: colors.card }]}
-                            onPress={handleGoogleSignIn}
-                        >
-                            <Animated.View style={[styles.socialButtonIcon, animatedGoogleStyle]}>
-                                <Ionicons name="logo-google" size={24} color={colors.text} />
-                            </Animated.View>
-                            <Text style={[styles.socialButtonText, { color: colors.text }]}>
-                                {language === 'en' ? 'Google' : 'गुगल'}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.socialButton, { backgroundColor: colors.card }]}
-                            onPress={handleGithubSignIn}
-                        >
-                            <Animated.View style={[styles.socialButtonIcon, animatedGithubStyle]}>
-                                <Ionicons name="logo-github" size={24} color={colors.text} />
-                            </Animated.View>
-                            <Text style={[styles.socialButtonText, { color: colors.text }]}>
-                                {language === 'en' ? 'GitHub' : 'गिटहब'}
-                            </Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-
-                    <Animated.View
-                        entering={FadeInUp.delay(800).duration(600).springify()}
+                        entering={FadeInUp.delay(500).duration(500).springify()}
                         style={styles.signUpContainer}
                     >
                         <Text style={[styles.signUpText, { color: colors.textSecondary }]}>
                             {language === 'en' ? "Don't have an account? " : 'खाता छैन? '}
                         </Text>
-                        <TouchableOpacity onPress={() => router.push('/(auth)/sign-up' as any)}>
-                            <Text style={[styles.signUpLink, { color: colors.primary }]}>{t[language].signUp}</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/(auth)/sign-up')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.signUpLink, { color: colors.primary }]}>
+                                {language === 'en' ? 'Sign up' : 'साइन अप गर्नुहोस्'}
+                            </Text>
                         </TouchableOpacity>
                     </Animated.View>
                 </View>
@@ -204,14 +184,30 @@ const styles = StyleSheet.create<Styles>({
     },
     header: {
         paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.lg,
-        gap: Spacing.xs,
+        paddingVertical: Spacing.xl,
+        gap: Spacing.md,
+        alignItems: 'center',
+    },
+    logoContainer: {
+        marginBottom: Spacing.md,
+    },
+    logo: {
+        width: 80,
+        height: 80,
+        borderRadius: BorderRadius.xl,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.lg,
     },
     title: {
         ...Typography.h1,
+        textAlign: 'center',
+        fontSize: 32,
     },
     subtitle: {
-        ...Typography.body2,
+        ...Typography.body1,
+        textAlign: 'center',
+        opacity: 0.8,
     },
     content: {
         flex: 1,
@@ -225,27 +221,28 @@ const styles = StyleSheet.create<Styles>({
         flexDirection: 'row',
         alignItems: 'center',
         padding: Spacing.lg,
-        borderRadius: BorderRadius.lg,
-        ...Shadows.sm,
+        borderRadius: BorderRadius.xl,
+        ...Shadows.lg,
     },
     iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: BorderRadius.md,
+        width: 56,
+        height: 56,
+        borderRadius: BorderRadius.lg,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: Spacing.md,
+        marginRight: Spacing.lg,
+        ...Shadows.md,
     },
     methodTextContainer: {
         flex: 1,
         gap: Spacing.xs,
     },
     methodButtonText: {
-        ...Typography.body1,
-        fontWeight: '600',
+        ...Typography.h2,
+        fontSize: 20,
     },
     methodButtonSubtext: {
-        ...Typography.caption,
+        ...Typography.body2,
     },
     signUpContainer: {
         flexDirection: 'row',
@@ -258,42 +255,6 @@ const styles = StyleSheet.create<Styles>({
     },
     signUpLink: {
         ...Typography.body2,
-        fontWeight: '600',
-    },
-    dividerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: Spacing.xl,
-        gap: Spacing.md,
-    },
-    divider: {
-        flex: 1,
-        height: 1,
-    },
-    dividerText: {
-        ...Typography.caption,
-    },
-    socialButtonsContainer: {
-        flexDirection: 'row',
-        gap: Spacing.md,
-    },
-    socialButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: Spacing.lg,
-        borderRadius: BorderRadius.lg,
-        gap: Spacing.sm,
-        ...Shadows.sm,
-    },
-    socialButtonIcon: {
-        width: 24,
-        height: 24,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    socialButtonText: {
-        ...Typography.button,
+        fontWeight: '700',
     },
 });

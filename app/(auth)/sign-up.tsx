@@ -2,16 +2,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
-import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { ActivityIndicator, Keyboard, Pressable, StyleSheet, Text, TextInput, TextStyle, TouchableOpacity, TouchableWithoutFeedback, useColorScheme, View, ViewStyle } from 'react-native';
+import Animated, {
+    FadeInDown,
+    FadeInUp,
+    interpolateColor,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withSequence,
+    withSpring
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Colors, Shadows, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-type SignUpStep = 'email' | 'password' | 'name';
+type SignUpStep = 'method' | 'phone' | 'email' | 'password' | 'name';
 
 interface FormErrors {
+    phone?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -48,14 +58,17 @@ interface Styles {
     passwordContainer: ViewStyle;
     passwordInput: TextStyle;
     visibilityToggle: ViewStyle;
-    dividerContainer: ViewStyle;
-    divider: ViewStyle;
-    dividerText: TextStyle;
-    socialButtonsContainer: ViewStyle;
-    socialButton: ViewStyle;
-    socialButtonIcon: ViewStyle;
-    socialButtonText: TextStyle;
+    logoContainer: ViewStyle;
+    logo: ViewStyle;
+    methodContainer: ViewStyle;
+    methodButton: ViewStyle;
+    methodTextContainer: ViewStyle;
+    methodButtonText: TextStyle;
+    methodButtonSubtext: TextStyle;
+    iconContainer: ViewStyle;
 }
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function SignUp() {
     const insets = useSafeAreaInsets();
@@ -64,7 +77,9 @@ export default function SignUp() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
 
-    const [step, setStep] = useState<SignUpStep>('email');
+    const [step, setStep] = useState<SignUpStep>('method');
+    const [signUpMethod, setSignUpMethod] = useState<'phone' | 'email'>('email');
+    const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -75,6 +90,92 @@ export default function SignUp() {
     const [isVerifying, setIsVerifying] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const scale = useSharedValue(1);
+    const buttonScale = useSharedValue(1);
+    const logoScale = useSharedValue(1);
+
+    // Animation styles
+    const animatedIconStyle = useAnimatedStyle(() => ({
+        transform: [
+            {
+                scale: withSpring(showPassword ? 1.2 : 1, {
+                    damping: 12,
+                    stiffness: 300,
+                }),
+            },
+        ],
+    }));
+
+    const animatedConfirmIconStyle = useAnimatedStyle(() => ({
+        transform: [
+            {
+                scale: withSpring(showConfirmPassword ? 1.2 : 1, {
+                    damping: 12,
+                    stiffness: 300,
+                }),
+            },
+        ],
+    }));
+
+    const animatedButtonStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: buttonScale.value }],
+        backgroundColor: interpolateColor(
+            buttonScale.value,
+            [0.95, 1],
+            [colors.primary + '20', colors.buttonPrimary]
+        ),
+    }));
+
+    const animatedLogoStyle = useAnimatedStyle(() => ({
+        transform: [
+            { scale: logoScale.value }
+        ],
+    }));
+
+    const animatedMethodIconStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: withSpring(buttonScale.value * 1.1) }]
+    }));
+
+    React.useEffect(() => {
+        logoScale.value = withSequence(
+            withSpring(1.1, { damping: 10, stiffness: 300 }),
+            withSpring(1, { damping: 12, stiffness: 300 })
+        );
+    }, []);
+
+    const validatePhone = (): boolean => {
+        const newErrors: FormErrors = {};
+        if (!phone.trim()) {
+            newErrors.phone = language === 'en' ? 'Phone number is required' : 'फोन नम्बर आवश्यक छ';
+        } else if (!/^[0-9]{10}$/.test(phone.replace(/\D/g, ''))) {
+            newErrors.phone = language === 'en' ? 'Please enter a valid 10-digit phone number' : 'कृपया मान्य १० अंकको फोन नम्बर प्रविष्ट गर्नुहोस्';
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handlePhoneSubmit = async () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 10 }),
+            withSpring(1, { damping: 15, stiffness: 200 })
+        );
+        if (!validatePhone()) return;
+        setTimeout(() => setStep('email'), 200);
+    };
+
+    const formatPhoneNumber = (text: string) => {
+        const cleaned = text.replace(/\D/g, '');
+        const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+        if (match) {
+            return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+        }
+        return cleaned;
+    };
+
+    const handlePhoneChange = (text: string) => {
+        const formatted = formatPhoneNumber(text);
+        setPhone(formatted);
+    };
 
     const validateEmail = (): boolean => {
         const newErrors: FormErrors = {};
@@ -115,17 +216,29 @@ export default function SignUp() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleEmailSubmit = async () => {
+    const handleEmailSubmit = () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 12, stiffness: 300 }),
+            withSpring(1, { damping: 15, stiffness: 300 })
+        );
         if (!validateEmail()) return;
-        setStep('password');
+        setTimeout(() => setStep('password'), 150);
     };
 
     const handlePasswordSubmit = async () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 10 }),
+            withSpring(1, { damping: 15, stiffness: 200 })
+        );
         if (!validatePassword()) return;
-        setStep('name');
+        setTimeout(() => setStep('name'), 200);
     };
 
     const handleNameSubmit = async () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 10 }),
+            withSpring(1, { damping: 15, stiffness: 200 })
+        );
         if (!validateName()) return;
 
         setIsVerifying(true);
@@ -141,6 +254,10 @@ export default function SignUp() {
     };
 
     const handleSkipName = async () => {
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 10 }),
+            withSpring(1, { damping: 15, stiffness: 200 })
+        );
         setIsVerifying(true);
         setApiError('');
 
@@ -161,77 +278,198 @@ export default function SignUp() {
         setShowConfirmPassword(!showConfirmPassword);
     };
 
-    const animatedIconStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    scale: withSpring(showPassword ? 1.2 : 1, {
-                        damping: 10,
-                        stiffness: 100,
-                    }),
-                },
-            ],
-        };
-    });
-
-    const animatedConfirmIconStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    scale: withSpring(showConfirmPassword ? 1.2 : 1, {
-                        damping: 10,
-                        stiffness: 100,
-                    }),
-                },
-            ],
-        };
-    });
-
-    const handleGoogleSignUp = () => {
-        // TODO: Implement Google sign-up
-        console.log('Google sign-up pressed');
+    const handleMethodSelect = (method: 'phone' | 'email') => {
+        setSignUpMethod(method);
+        buttonScale.value = withSequence(
+            withSpring(0.95, { damping: 12, stiffness: 300 }),
+            withSpring(1, { damping: 15, stiffness: 300 })
+        );
+        if (method === 'phone') {
+            setStep('phone');
+        } else {
+            setStep('email');
+        }
     };
-
-    const handleGithubSignUp = () => {
-        // TODO: Implement GitHub sign-up
-        console.log('GitHub sign-up pressed');
-    };
-
-    const animatedGoogleStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    scale: withSpring(1, {
-                        damping: 10,
-                        stiffness: 100,
-                    }),
-                },
-            ],
-        };
-    });
-
-    const animatedGithubStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    scale: withSpring(1, {
-                        damping: 10,
-                        stiffness: 100,
-                    }),
-                },
-            ],
-        };
-    });
 
     const renderStep = () => {
         switch (step) {
+            case 'method':
+                return (
+                    <Animated.View
+                        entering={FadeInUp.delay(200).duration(800).springify()}
+                        exiting={FadeInDown.duration(400)}
+                        layout={Layout.springify()}
+                        style={styles.inputContainer}
+                    >
+                        <Animated.View
+                            style={[styles.logoContainer, animatedLogoStyle]}
+                            entering={FadeInDown.delay(200).duration(1000).springify()}
+                        >
+                            <View style={[styles.logo, { backgroundColor: colors.primary }]}>
+                                <Ionicons name="medical" size={32} color={colors.buttonText} />
+                            </View>
+                        </Animated.View>
+
+                        <Animated.Text
+                            entering={FadeInDown.delay(400).duration(800).springify()}
+                            style={[styles.title, { color: colors.text, textAlign: 'center', marginBottom: Spacing.xl }]}
+                        >
+                            {language === 'en' ? 'Choose Sign Up Method' : 'साइन अप विधि चयन गर्नुहोस्'}
+                        </Animated.Text>
+
+                        <Animated.View
+                            entering={FadeInUp.delay(600).duration(800).springify()}
+                            style={styles.methodContainer}
+                        >
+                            <AnimatedPressable
+                                style={[styles.methodButton, animatedButtonStyle]}
+                                onPress={() => handleMethodSelect('phone')}
+                                android_ripple={{ color: colors.primary + '20', radius: 200 }}
+                            >
+                                <Animated.View
+                                    style={[
+                                        styles.iconContainer,
+                                        { backgroundColor: colors.primary },
+                                        animatedMethodIconStyle
+                                    ]}
+                                >
+                                    <Ionicons name="call" size={24} color={colors.buttonText} />
+                                </Animated.View>
+                                <View style={styles.methodTextContainer}>
+                                    <Text style={[styles.methodButtonText, { color: colors.text }]}>
+                                        {language === 'en' ? 'Sign up with Phone' : 'फोनबाट साइन अप गर्नुहोस्'}
+                                    </Text>
+                                    <Text style={[styles.methodButtonSubtext, { color: colors.textSecondary }]}>
+                                        {language === 'en' ? 'Use your phone number' : 'आफ्नो फोन नम्बर प्रयोग गर्नुहोस्'}
+                                    </Text>
+                                </View>
+                            </AnimatedPressable>
+
+                            <AnimatedPressable
+                                style={[styles.methodButton, animatedButtonStyle]}
+                                onPress={() => handleMethodSelect('email')}
+                                android_ripple={{ color: colors.primary + '20', radius: 200 }}
+                            >
+                                <Animated.View
+                                    style={[
+                                        styles.iconContainer,
+                                        { backgroundColor: colors.primary },
+                                        animatedMethodIconStyle
+                                    ]}
+                                >
+                                    <Ionicons name="mail" size={24} color={colors.buttonText} />
+                                </Animated.View>
+                                <View style={styles.methodTextContainer}>
+                                    <Text style={[styles.methodButtonText, { color: colors.text }]}>
+                                        {language === 'en' ? 'Sign up with Email' : 'इमेलबाट साइन अप गर्नुहोस्'}
+                                    </Text>
+                                    <Text style={[styles.methodButtonSubtext, { color: colors.textSecondary }]}>
+                                        {language === 'en' ? 'Use your email address' : 'आफ्नो इमेल ठेगाना प्रयोग गर्नुहोस्'}
+                                    </Text>
+                                </View>
+                            </AnimatedPressable>
+                        </Animated.View>
+                    </Animated.View>
+                );
+
+            case 'phone':
+                return (
+                    <Animated.View
+                        entering={FadeInUp.delay(200).duration(800).springify()}
+                        exiting={FadeInDown.duration(400)}
+                        layout={Layout.springify()}
+                        style={styles.inputContainer}
+                    >
+                        <Animated.View
+                            style={[styles.logoContainer, animatedLogoStyle]}
+                            entering={FadeInDown.delay(200).duration(1000).springify()}
+                        >
+                            <View style={[styles.logo, { backgroundColor: colors.primary }]}>
+                                <Ionicons name="medical" size={32} color={colors.buttonText} />
+                            </View>
+                        </Animated.View>
+
+                        <Animated.Text
+                            entering={FadeInDown.delay(400).duration(800).springify()}
+                            style={[styles.title, { color: colors.text, textAlign: 'center', marginBottom: Spacing.xl }]}
+                        >
+                            {language === 'en' ? 'Enter your phone number' : 'आफ्नो फोन नम्बर प्रविष्ट गर्नुहोस्'}
+                        </Animated.Text>
+
+                        <View>
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    {
+                                        backgroundColor: colors.inputBackground,
+                                        borderColor: errors.phone ? colors.error : colors.inputBorder,
+                                        color: colors.text
+                                    }
+                                ]}
+                                placeholder={language === 'en' ? '(123) 456-7890' : '(९८७) ६५४-३२१०'}
+                                placeholderTextColor={colors.textSecondary}
+                                value={phone}
+                                onChangeText={handlePhoneChange}
+                                keyboardType="phone-pad"
+                                maxLength={14}
+                                autoComplete="tel"
+                            />
+                            {errors.phone ? (
+                                <Animated.Text
+                                    entering={FadeInDown.duration(200)}
+                                    style={[styles.errorText, { color: colors.error }]}
+                                >
+                                    {errors.phone}
+                                </Animated.Text>
+                            ) : null}
+                        </View>
+
+                        <AnimatedPressable
+                            style={[styles.continueButton, animatedButtonStyle]}
+                            onPress={handlePhoneSubmit}
+                            android_ripple={{ color: colors.primary + '20', radius: 200 }}
+                        >
+                            <Text style={[styles.continueButtonText, { color: colors.buttonText }]}>
+                                {t[language].continue}
+                            </Text>
+                        </AnimatedPressable>
+
+                        <TouchableOpacity
+                            style={styles.skipButton}
+                            onPress={() => setStep('method')}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
+                                {language === 'en' ? 'Change method' : 'विधि परिवर्तन गर्नुहोस्'}
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                );
+
             case 'email':
                 return (
                     <Animated.View
-                        entering={FadeInUp.delay(200).duration(600).springify()}
+                        entering={FadeInUp.delay(200).duration(800).springify()}
                         exiting={FadeInDown.duration(400)}
+                        layout={Layout.springify()}
                         style={styles.inputContainer}
                     >
+                        <Animated.View
+                            style={[styles.logoContainer, animatedLogoStyle]}
+                            entering={FadeInDown.delay(200).duration(1000).springify()}
+                        >
+                            <View style={[styles.logo, { backgroundColor: colors.primary }]}>
+                                <Ionicons name="medical" size={32} color={colors.buttonText} />
+                            </View>
+                        </Animated.View>
+
+                        <Animated.Text
+                            entering={FadeInDown.delay(400).duration(800).springify()}
+                            style={[styles.title, { color: colors.text, textAlign: 'center', marginBottom: Spacing.xl }]}
+                        >
+                            {language === 'en' ? 'Enter your email' : 'आफ्नो इमेल प्रविष्ट गर्नुहोस्'}
+                        </Animated.Text>
+
                         <View>
                             <TextInput
                                 style={[
@@ -260,65 +498,34 @@ export default function SignUp() {
                             ) : null}
                         </View>
 
-                        <TouchableOpacity
-                            style={[
-                                styles.continueButton,
-                                { backgroundColor: colors.buttonPrimary }
-                            ]}
+                        <AnimatedPressable
+                            style={[styles.continueButton, animatedButtonStyle]}
                             onPress={handleEmailSubmit}
+                            android_ripple={{ color: colors.primary + '20', radius: 200 }}
                         >
                             <Text style={[styles.continueButtonText, { color: colors.buttonText }]}>
                                 {t[language].continue}
                             </Text>
-                        </TouchableOpacity>
+                        </AnimatedPressable>
 
-                        <Animated.View
-                            entering={FadeInUp.delay(400).duration(600).springify()}
-                            style={styles.dividerContainer}
+                        <TouchableOpacity
+                            style={styles.skipButton}
+                            onPress={() => setStep('method')}
+                            activeOpacity={0.7}
                         >
-                            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                            <Text style={[styles.dividerText, { color: colors.textSecondary }]}>
-                                {language === 'en' ? 'or sign up with' : 'वा यसबाट साइन अप गर्नुहोस्'}
+                            <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
+                                {language === 'en' ? 'Change method' : 'विधि परिवर्तन गर्नुहोस्'}
                             </Text>
-                            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                        </Animated.View>
-
-                        <Animated.View
-                            entering={FadeInUp.delay(600).duration(600).springify()}
-                            style={styles.socialButtonsContainer}
-                        >
-                            <TouchableOpacity
-                                style={[styles.socialButton, { backgroundColor: colors.card }]}
-                                onPress={handleGoogleSignUp}
-                            >
-                                <Animated.View style={[styles.socialButtonIcon, animatedGoogleStyle]}>
-                                    <Ionicons name="logo-google" size={24} color={colors.text} />
-                                </Animated.View>
-                                <Text style={[styles.socialButtonText, { color: colors.text }]}>
-                                    {language === 'en' ? 'Google' : 'गुगल'}
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.socialButton, { backgroundColor: colors.card }]}
-                                onPress={handleGithubSignUp}
-                            >
-                                <Animated.View style={[styles.socialButtonIcon, animatedGithubStyle]}>
-                                    <Ionicons name="logo-github" size={24} color={colors.text} />
-                                </Animated.View>
-                                <Text style={[styles.socialButtonText, { color: colors.text }]}>
-                                    {language === 'en' ? 'GitHub' : 'गिटहब'}
-                                </Text>
-                            </TouchableOpacity>
-                        </Animated.View>
+                        </TouchableOpacity>
                     </Animated.View>
                 );
 
             case 'password':
                 return (
                     <Animated.View
-                        entering={FadeInUp.delay(200).duration(600).springify()}
+                        entering={FadeInUp.delay(200).duration(800).springify()}
                         exiting={FadeInDown.duration(400)}
+                        layout={Layout.springify()}
                         style={styles.inputContainer}
                     >
                         <Animated.View
@@ -327,20 +534,26 @@ export default function SignUp() {
                                 styles.emailContainer,
                                 {
                                     backgroundColor: colors.card,
-                                    borderColor: colors.border
+                                    borderColor: colors.border,
+                                    ...Shadows.sm
                                 }
                             ]}
                         >
+                            <View style={styles.emailIcon}>
+                                <Ionicons name="mail" size={20} color={colors.textSecondary} />
+                            </View>
                             <Text style={[styles.emailText, { color: colors.text }]}>{email}</Text>
                             <TouchableOpacity
                                 style={[
                                     styles.changeEmailButton,
                                     {
                                         backgroundColor: colors.background,
-                                        borderColor: colors.primary
+                                        borderColor: colors.primary,
+                                        borderWidth: 1
                                     }
                                 ]}
                                 onPress={() => setStep('email')}
+                                activeOpacity={0.7}
                             >
                                 <Text style={[styles.changeEmailButtonText, { color: colors.primary }]}>
                                     {language === 'en' ? 'Change' : 'परिवर्तन गर्नुहोस्'}
@@ -348,38 +561,41 @@ export default function SignUp() {
                             </TouchableOpacity>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInUp.delay(200).duration(400)}>
-                            <View style={styles.passwordContainer}>
-                                <TextInput
-                                    style={[
-                                        styles.input,
-                                        styles.passwordInput,
-                                        {
-                                            backgroundColor: colors.card,
-                                            borderColor: errors.password ? colors.error : colors.border,
-                                            color: colors.text
-                                        }
-                                    ]}
-                                    placeholder={t[language].password}
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    secureTextEntry={!showPassword}
-                                    autoComplete="password-new"
-                                />
-                                <TouchableOpacity
-                                    style={styles.visibilityToggle}
-                                    onPress={togglePasswordVisibility}
-                                >
-                                    <Animated.View style={animatedIconStyle}>
-                                        <Ionicons
-                                            name={showPassword ? "eye-off-outline" : "eye-outline"}
-                                            size={24}
-                                            color={colors.textSecondary}
-                                        />
-                                    </Animated.View>
-                                </TouchableOpacity>
-                            </View>
+                        <Animated.View
+                            entering={FadeInUp.delay(200).duration(400)}
+                            style={styles.passwordContainer}
+                        >
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    styles.passwordInput,
+                                    {
+                                        backgroundColor: colors.card,
+                                        borderColor: errors.password ? colors.error : colors.border,
+                                        color: colors.text,
+                                        ...Shadows.sm
+                                    }
+                                ]}
+                                placeholder={t[language].password}
+                                placeholderTextColor={colors.textSecondary}
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!showPassword}
+                                autoComplete="password-new"
+                            />
+                            <TouchableOpacity
+                                style={styles.visibilityToggle}
+                                onPress={togglePasswordVisibility}
+                                activeOpacity={0.7}
+                            >
+                                <Animated.View style={animatedIconStyle}>
+                                    <Ionicons
+                                        name={showPassword ? "eye-off-outline" : "eye-outline"}
+                                        size={24}
+                                        color={colors.textSecondary}
+                                    />
+                                </Animated.View>
+                            </TouchableOpacity>
                             {errors.password ? (
                                 <Animated.Text
                                     entering={FadeInDown.duration(200)}
@@ -390,38 +606,41 @@ export default function SignUp() {
                             ) : null}
                         </Animated.View>
 
-                        <Animated.View entering={FadeInUp.delay(300).duration(400)}>
-                            <View style={styles.passwordContainer}>
-                                <TextInput
-                                    style={[
-                                        styles.input,
-                                        styles.passwordInput,
-                                        {
-                                            backgroundColor: colors.card,
-                                            borderColor: errors.confirmPassword ? colors.error : colors.border,
-                                            color: colors.text
-                                        }
-                                    ]}
-                                    placeholder={t[language].confirmPassword}
-                                    placeholderTextColor={colors.textSecondary}
-                                    value={confirmPassword}
-                                    onChangeText={setConfirmPassword}
-                                    secureTextEntry={!showConfirmPassword}
-                                    autoComplete="password-new"
-                                />
-                                <TouchableOpacity
-                                    style={styles.visibilityToggle}
-                                    onPress={toggleConfirmPasswordVisibility}
-                                >
-                                    <Animated.View style={animatedConfirmIconStyle}>
-                                        <Ionicons
-                                            name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
-                                            size={24}
-                                            color={colors.textSecondary}
-                                        />
-                                    </Animated.View>
-                                </TouchableOpacity>
-                            </View>
+                        <Animated.View
+                            entering={FadeInUp.delay(300).duration(400)}
+                            style={styles.passwordContainer}
+                        >
+                            <TextInput
+                                style={[
+                                    styles.input,
+                                    styles.passwordInput,
+                                    {
+                                        backgroundColor: colors.card,
+                                        borderColor: errors.confirmPassword ? colors.error : colors.border,
+                                        color: colors.text,
+                                        ...Shadows.sm
+                                    }
+                                ]}
+                                placeholder={t[language].confirmPassword}
+                                placeholderTextColor={colors.textSecondary}
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                                secureTextEntry={!showConfirmPassword}
+                                autoComplete="password-new"
+                            />
+                            <TouchableOpacity
+                                style={styles.visibilityToggle}
+                                onPress={toggleConfirmPasswordVisibility}
+                                activeOpacity={0.7}
+                            >
+                                <Animated.View style={animatedConfirmIconStyle}>
+                                    <Ionicons
+                                        name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                                        size={24}
+                                        color={colors.textSecondary}
+                                    />
+                                </Animated.View>
+                            </TouchableOpacity>
                             {errors.confirmPassword ? (
                                 <Animated.Text
                                     entering={FadeInDown.duration(200)}
@@ -432,35 +651,29 @@ export default function SignUp() {
                             ) : null}
                         </Animated.View>
 
-                        <Animated.View
-                            entering={FadeInUp.delay(400).duration(400)}
-                            style={{ marginTop: Spacing.xl }}
+                        <AnimatedPressable
+                            style={[styles.continueButton, animatedButtonStyle]}
+                            onPress={handlePasswordSubmit}
+                            android_ripple={{ color: colors.primary + '20', radius: 200 }}
                         >
-                            <TouchableOpacity
-                                style={[
-                                    styles.continueButton,
-                                    { backgroundColor: colors.buttonPrimary }
-                                ]}
-                                onPress={handlePasswordSubmit}
-                            >
-                                <Text style={[styles.continueButtonText, { color: colors.buttonText }]}>
-                                    {t[language].continue}
-                                </Text>
-                            </TouchableOpacity>
-                        </Animated.View>
+                            <Text style={[styles.continueButtonText, { color: colors.buttonText }]}>
+                                {t[language].continue}
+                            </Text>
+                        </AnimatedPressable>
                     </Animated.View>
                 );
 
             case 'name':
                 return (
                     <Animated.View
-                        entering={FadeInUp.delay(200).duration(600).springify()}
+                        entering={FadeInUp.delay(200).duration(800).springify()}
                         exiting={FadeInDown.duration(400)}
+                        layout={Layout.springify()}
                         style={styles.inputContainer}
                     >
                         <Animated.Text
                             entering={FadeInDown.delay(100).duration(400)}
-                            style={[styles.title, { color: colors.text, marginBottom: Spacing.lg }]}
+                            style={[styles.title, { color: colors.text, marginBottom: Spacing.lg, textAlign: 'center' }]}
                         >
                             {language === 'en' ? 'Would you like to introduce yourself?' : 'आफ्नो परिचय दिन चाहनुहुन्छ?'}
                         </Animated.Text>
@@ -479,7 +692,8 @@ export default function SignUp() {
                                         {
                                             backgroundColor: colors.card,
                                             borderColor: errors.firstName ? colors.error : colors.border,
-                                            color: colors.text
+                                            color: colors.text,
+                                            ...Shadows.sm
                                         }
                                     ]}
                                     placeholder={t[language].firstName}
@@ -509,7 +723,8 @@ export default function SignUp() {
                                         {
                                             backgroundColor: colors.card,
                                             borderColor: errors.lastName ? colors.error : colors.border,
-                                            color: colors.text
+                                            color: colors.text,
+                                            ...Shadows.sm
                                         }
                                     ]}
                                     placeholder={t[language].lastName}
@@ -530,28 +745,24 @@ export default function SignUp() {
                             </Animated.View>
                         </Animated.View>
 
-                        <Animated.View
-                            entering={FadeInUp.delay(400).duration(400)}
-                            style={{ marginTop: Spacing.xl }}
+                        <AnimatedPressable
+                            style={[
+                                styles.continueButton,
+                                animatedButtonStyle,
+                                isVerifying && { opacity: 0.7 }
+                            ]}
+                            onPress={handleNameSubmit}
+                            disabled={isVerifying}
+                            android_ripple={{ color: colors.primary + '20', radius: 200 }}
                         >
-                            <TouchableOpacity
-                                style={[
-                                    styles.continueButton,
-                                    { backgroundColor: colors.buttonPrimary },
-                                    isVerifying && { opacity: 0.7 }
-                                ]}
-                                onPress={handleNameSubmit}
-                                disabled={isVerifying}
-                            >
-                                {isVerifying ? (
-                                    <ActivityIndicator color={colors.buttonText} />
-                                ) : (
-                                    <Text style={[styles.continueButtonText, { color: colors.buttonText }]}>
-                                        {t[language].continue}
-                                    </Text>
-                                )}
-                            </TouchableOpacity>
-                        </Animated.View>
+                            {isVerifying ? (
+                                <ActivityIndicator color={colors.buttonText} />
+                            ) : (
+                                <Text style={[styles.continueButtonText, { color: colors.buttonText }]}>
+                                    {t[language].continue}
+                                </Text>
+                            )}
+                        </AnimatedPressable>
 
                         <Animated.View
                             entering={FadeInUp.delay(500).duration(400)}
@@ -560,6 +771,7 @@ export default function SignUp() {
                             <TouchableOpacity
                                 onPress={handleSkipName}
                                 disabled={isVerifying}
+                                activeOpacity={0.7}
                             >
                                 <Text style={[styles.skipButtonText, { color: colors.textSecondary }]}>
                                     {language === 'en' ? 'Skip for now' : 'अहिलेलाई छोड्नुहोस्'}
@@ -579,44 +791,52 @@ export default function SignUp() {
                     gestureEnabled: false,
                 }}
             />
-            <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
-                <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-
-                <Animated.View
-                    entering={FadeInDown.duration(600).springify()}
-                    style={styles.header}
-                >
-                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                        <Ionicons name="arrow-back" size={24} color={colors.text} />
-                    </TouchableOpacity>
-                    <Text style={[styles.title, { color: colors.text }]}>{t[language].signUp}</Text>
-                </Animated.View>
-
-                <View style={styles.content}>
-                    {apiError ? (
-                        <Animated.View
-                            entering={FadeInDown.duration(400)}
-                            style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}
-                        >
-                            <Text style={[styles.errorText, { color: colors.error }]}>{apiError}</Text>
-                        </Animated.View>
-                    ) : null}
-
-                    {renderStep()}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View style={[styles.container, { paddingTop: insets.top, backgroundColor: colors.background }]}>
+                    <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
 
                     <Animated.View
-                        entering={FadeInUp.delay(400).duration(600).springify()}
-                        style={styles.signInContainer}
+                        entering={FadeInDown.duration(800).springify()}
+                        style={styles.header}
                     >
-                        <Text style={[styles.signInText, { color: colors.textSecondary }]}>
-                            {language === 'en' ? 'Already have an account? ' : 'पहिले नै खाता छ? '}
-                        </Text>
-                        <TouchableOpacity onPress={() => router.push('/(auth)/sign-in' as any)}>
-                            <Text style={[styles.signInLink, { color: colors.primary }]}>{t[language].signIn}</Text>
+                        <TouchableOpacity
+                            onPress={() => router.back()}
+                            style={[styles.backButton, { backgroundColor: colors.card }]}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="arrow-back" size={24} color={colors.text} />
                         </TouchableOpacity>
                     </Animated.View>
+
+                    <View style={styles.content}>
+                        {apiError ? (
+                            <Animated.View
+                                entering={FadeInDown.duration(400)}
+                                style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}
+                            >
+                                <Text style={[styles.errorText, { color: colors.error }]}>{apiError}</Text>
+                            </Animated.View>
+                        ) : null}
+
+                        {renderStep()}
+
+                        <Animated.View
+                            entering={FadeInUp.delay(400).duration(800).springify()}
+                            style={styles.signInContainer}
+                        >
+                            <Text style={[styles.signInText, { color: colors.textSecondary }]}>
+                                {language === 'en' ? 'Already have an account? ' : 'पहिले नै खाता छ? '}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => router.push('/(auth)/sign-in' as any)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.signInLink, { color: colors.primary }]}>{t[language].signIn}</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </View>
                 </View>
-            </View>
+            </TouchableWithoutFeedback>
         </>
     );
 }
@@ -632,14 +852,21 @@ const styles = StyleSheet.create<Styles>({
         paddingVertical: Spacing.lg,
     },
     backButton: {
-        marginRight: Spacing.md,
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.sm,
     },
     title: {
         ...Typography.h1,
+        fontSize: 32,
     },
     subtitle: {
-        ...Typography.body2,
-        color: Colors.light.textSecondary,
+        ...Typography.body1,
+        textAlign: 'center',
+        opacity: 0.8,
     },
     content: {
         flex: 1,
@@ -649,40 +876,75 @@ const styles = StyleSheet.create<Styles>({
     inputContainer: {
         gap: Spacing.md,
     },
-    nameContainer: {
-        gap: Spacing.md,
-    },
-    nameInputContainer: {
-        width: '100%',
-    },
     input: {
         ...Typography.body1,
         paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderRadius: BorderRadius.lg,
+        paddingVertical: Spacing.lg,
+        borderRadius: BorderRadius.xl,
         borderWidth: 1,
-    },
-    inputError: {
-        borderColor: Colors.light.error,
-    },
-    errorContainer: {
-        padding: Spacing.md,
-        borderRadius: BorderRadius.md,
-        marginBottom: Spacing.lg,
-    },
-    errorText: {
-        ...Typography.caption,
-        marginTop: Spacing.xs,
     },
     continueButton: {
         paddingVertical: Spacing.lg,
-        borderRadius: BorderRadius.lg,
+        borderRadius: BorderRadius.xl,
         alignItems: 'center',
         marginTop: Spacing.xl,
-        ...Shadows.sm,
+        ...Shadows.lg,
     },
     continueButtonText: {
         ...Typography.button,
+        fontSize: 18,
+    },
+    emailContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.lg,
+        borderRadius: BorderRadius.xl,
+        marginBottom: Spacing.lg,
+        borderWidth: 1,
+    },
+    emailIcon: {
+        width: 24,
+        height: 24,
+        marginRight: Spacing.sm,
+        opacity: 0.8,
+    },
+    emailText: {
+        ...Typography.body1,
+        flex: 1,
+        marginRight: Spacing.md,
+        opacity: 0.8,
+    },
+    changeEmailButton: {
+        paddingHorizontal: Spacing.md,
+        paddingVertical: Spacing.sm,
+        borderRadius: BorderRadius.lg,
+    },
+    changeEmailButtonText: {
+        ...Typography.body2,
+        fontWeight: '600',
+    },
+    passwordContainer: {
+        position: 'relative',
+        marginBottom: Spacing.md,
+    },
+    passwordInput: {
+        paddingRight: 48,
+    },
+    visibilityToggle: {
+        position: 'absolute',
+        right: Spacing.md,
+        top: '50%',
+        transform: [{ translateY: -12 }],
+        padding: Spacing.xs,
+        zIndex: 1,
+    },
+    skipButton: {
+        alignItems: 'center',
+        paddingVertical: Spacing.lg,
+    },
+    skipButtonText: {
+        ...Typography.body2,
+        opacity: 0.8,
     },
     signInContainer: {
         flexDirection: 'row',
@@ -695,93 +957,69 @@ const styles = StyleSheet.create<Styles>({
     },
     signInLink: {
         ...Typography.body2,
-        fontWeight: '600',
+        fontWeight: '700',
     },
-    emailContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+    errorContainer: {
         padding: Spacing.lg,
         borderRadius: BorderRadius.lg,
         marginBottom: Spacing.lg,
-        borderWidth: 1,
-    },
-    emailText: {
-        ...Typography.body1,
-        flex: 1,
-        marginRight: Spacing.md,
-        opacity: 0.8,
-    },
-    emailIcon: {
-        width: 24,
-        height: 24,
-        marginRight: Spacing.sm,
-    },
-    changeEmailButton: {
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.xs,
-        borderRadius: BorderRadius.md,
-        backgroundColor: Colors.light.card,
-    },
-    changeEmailButtonText: {
-        ...Typography.body2,
-        color: Colors.light.primary,
-    },
-    skipButton: {
-        alignItems: 'center',
-        paddingVertical: Spacing.md,
-    },
-    skipButtonText: {
-        ...Typography.body2,
-    },
-    passwordContainer: {
-        position: 'relative',
-    },
-    passwordInput: {
-        paddingRight: 48, // Make room for the icon
-    },
-    visibilityToggle: {
-        position: 'absolute',
-        right: Spacing.md,
-        top: '50%',
-        transform: [{ translateY: -12 }],
-        padding: Spacing.xs,
-        zIndex: 1,
-    },
-    dividerContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginVertical: Spacing.xl,
-        gap: Spacing.md,
-    },
-    divider: {
-        flex: 1,
-        height: 1,
-    },
-    dividerText: {
-        ...Typography.caption,
-    },
-    socialButtonsContainer: {
-        flexDirection: 'row',
-        gap: Spacing.md,
-    },
-    socialButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: Spacing.lg,
-        borderRadius: BorderRadius.lg,
-        gap: Spacing.sm,
         ...Shadows.sm,
     },
-    socialButtonIcon: {
-        width: 24,
-        height: 24,
+    errorText: {
+        ...Typography.caption,
+        marginTop: Spacing.xs,
+    },
+    logoContainer: {
+        alignItems: 'center',
+        marginBottom: Spacing.xl,
+    },
+    logo: {
+        width: 80,
+        height: 80,
+        borderRadius: BorderRadius.xl,
         alignItems: 'center',
         justifyContent: 'center',
+        ...Shadows.lg,
     },
-    socialButtonText: {
+    nameContainer: {
+        gap: Spacing.md,
+    },
+    nameInputContainer: {
+        width: '100%',
+    },
+    inputError: {
+        borderColor: Colors.light.error,
+    },
+    methodContainer: {
+        gap: Spacing.md,
+    },
+    methodButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Spacing.lg,
+        borderRadius: BorderRadius.xl,
+        backgroundColor: Colors.light.card,
+        ...Shadows.sm,
+    },
+    methodTextContainer: {
+        marginLeft: Spacing.md,
+        flex: 1,
+    },
+    methodButtonText: {
         ...Typography.button,
+        fontSize: 16,
+        marginBottom: Spacing.xs,
+    },
+    methodButtonSubtext: {
+        ...Typography.caption,
+        opacity: 0.8,
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: BorderRadius.lg,
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...Shadows.sm,
     },
 });

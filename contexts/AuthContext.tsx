@@ -12,76 +12,46 @@ WebBrowser.maybeCompleteAuthSession();
 
 // Platform-specific storage functions
 const storage = {
-    async setAccessToken(token: string) {
-        if (PLATFORM_CONFIG.IS_WEB) {
-            sessionStorage.setItem(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN, token);
-        } else {
-            try {
-                await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN, token);
-            } catch (error) {
-                console.error('Error storing access token:', error);
-            }
+    setAccessToken: async function (token: string) {
+        try {
+            await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN, token);
+        } catch (error) {
+            console.error('Error storing access token:', error);
         }
     },
-
     async getAccessToken() {
-        if (PLATFORM_CONFIG.IS_WEB) {
-            return sessionStorage.getItem(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
-        } else {
             try {
                 return await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
             } catch (error) {
                 console.error('Error getting access token:', error);
                 return null;
             }
-        }
     },
-
     async setRefreshToken(token: string) {
-        if (PLATFORM_CONFIG.IS_WEB) {
-            // For web, the refresh token is handled by HTTP-only cookies from the backend
-            sessionStorage.setItem(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN, token);
-            return;
-        } else {
             try {
                 await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN, token);
             } catch (error) {
                 console.error('Error storing refresh token:', error);
             }
-        }
     },
-
     async getRefreshToken() {
-        if (PLATFORM_CONFIG.IS_WEB) {
-            return sessionStorage.getItem(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN);
-        } else {
             try {
                 return await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN);
             } catch (error) {
                 console.error('Error getting refresh token:', error);
                 return null;
-            }
         }
     },
-
     async setUser(user: any) {
         const userData = JSON.stringify(user);
-        if (PLATFORM_CONFIG.IS_WEB) {
-            sessionStorage.setItem(AUTH_CONFIG.TOKEN_KEYS.USER, userData);
-        } else {
             try {
                 await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.USER, userData);
             } catch (error) {
                 console.error('Error storing user data:', error);
-            }
         }
     },
 
     async getUser() {
-        if (PLATFORM_CONFIG.IS_WEB) {
-            const userData = sessionStorage.getItem(AUTH_CONFIG.TOKEN_KEYS.USER);
-            return userData ? JSON.parse(userData) : null;
-        } else {
             try {
                 const userData = await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.USER);
                 return userData ? JSON.parse(userData) : null;
@@ -89,15 +59,9 @@ const storage = {
                 console.error('Error getting user data:', error);
                 return null;
             }
-        }
     },
 
     async clear() {
-        if (PLATFORM_CONFIG.IS_WEB) {
-            sessionStorage.removeItem(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
-            sessionStorage.removeItem(AUTH_CONFIG.TOKEN_KEYS.USER);
-            // Note: Refresh token is handled by HTTP-only cookies on web
-        } else {
             try {
                 await SecureStore.deleteItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
                 await SecureStore.deleteItemAsync(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN);
@@ -105,7 +69,6 @@ const storage = {
             } catch (error) {
                 console.error('Error clearing storage:', error);
             }
-        }
     }
 };
 
@@ -129,83 +92,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Backend configuration
-// const BACKEND_URL = Platform.select({
-//   web: 'http://10.144.89.109:8080',
-//   default: 'http://10.144.89.109:8080', // Android emulator localhost
-// });
 
 const BACKEND_URL = API_CONFIG.BACKEND_URL;
-
-// Platform-specific auth handlers
-const handleAuth = async (authUrl: string, redirectUri: string) => {
-    // Add platform parameter to the redirect URI
-    const platformRedirectUri = `${redirectUri}?platform=${Platform.OS}`;
-    const finalAuthUrl = authUrl.replace(encodeURIComponent(redirectUri), encodeURIComponent(platformRedirectUri));
-
-    if (Platform.OS === 'web') {
-        window.location.href = finalAuthUrl;
-    } else {
-        // For mobile, use WebBrowser but with web flow
-        const result = await WebBrowser.openAuthSessionAsync(
-            finalAuthUrl,
-            platformRedirectUri,
-            {
-                showInRecents: true,
-                preferEphemeralSession: false,
-            }
-        );
-
-        if (result.type === 'success') {
-            const url = result.url;
-            const code = new URL(url).searchParams.get('code');
-            if (code) {
-                // Exchange code for tokens
-                const { access_token, refresh_token } = await exchangeCodeForTokens(code, platformRedirectUri);
-
-                // Store tokens securely
-                await SecureStore.setItemAsync("access_token", access_token);
-                await SecureStore.setItemAsync("refresh_token", refresh_token);
-
-                // Get and store user data
-                const userData = await fetchAndStoreUserData(access_token);
-                return userData;
-            }
-        }
-        throw new Error("Failed to get authorization code");
-    }
-};
-
-const exchangeCodeForTokens = async (code: string, redirectUri: string) => {
-    const tokenResponse = await fetch(`${BACKEND_URL}/oauth2/token`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            code,
-            redirect_uri: redirectUri,
-            grant_type: "authorization_code",
-        }),
-    });
-
-    if (!tokenResponse.ok) {
-        throw new Error("Failed to exchange code for tokens");
-    }
-
-    return tokenResponse.json();
-};
-
-const fetchAndStoreUserData = async (access_token: string) => {
-    const userResponse = await fetchWithAuth("/api/v1/user/me");
-    if (!userResponse.ok) {
-        throw new Error("Failed to get user info");
-    }
-
-    const userData = await userResponse.json();
-    await SecureStore.setItemAsync("user", JSON.stringify(userData));
-    return userData;
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -315,9 +203,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Store tokens using platform-specific storage
             await storage.setAccessToken(access_token);
-            if (!PLATFORM_CONFIG.IS_WEB) {
-                await storage.setRefreshToken(refresh_token);
-            }
+            await storage.setRefreshToken(refresh_token);
+
 
             // Get user info
             const userResponse = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.USER_ME);
@@ -326,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const userData = await userResponse.json();
-
+            console.error('userData', userData);
             await storage.setUser(userData.data);
             setUser(userData);
 
@@ -347,7 +234,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 credentials: PLATFORM_CONFIG.IS_WEB ? 'include' : 'omit',
             });
             await storage.clear();
+            console.error(storage.getUser());
             setUser(null);
+            console.error(storage.getUser());
             router.replace("/");
         } catch (error) {
             console.error("Error signing out:", error);
