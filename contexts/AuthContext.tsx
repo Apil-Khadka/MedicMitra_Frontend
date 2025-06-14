@@ -1,16 +1,9 @@
-import { makeRedirectUri } from "expo-auth-session";
 import { router } from "expo-router";
 import * as SecureStore from 'expo-secure-store';
-import * as WebBrowser from "expo-web-browser";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Platform } from "react-native";
-import { API_CONFIG, AUTH_CONFIG, OAUTH_CONFIG, PLATFORM_CONFIG } from '@/config/constants';
+import { API_CONFIG, AUTH_CONFIG, PLATFORM_CONFIG } from '@/config/constants';
 import { fetchWithAuth } from "@/utils/api";
 
-// Register for web browser redirect
-WebBrowser.maybeCompleteAuthSession();
-
-// Platform-specific storage functions
 const storage = {
     setAccessToken: async function (token: string) {
         try {
@@ -87,7 +80,6 @@ type AuthContextType = {
     signIn: (email: string, password: string) => Promise<void>;
     signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
     signOut: () => Promise<void>;
-    handleAuthRedirect: (url: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -287,7 +279,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 signIn,
                 signUp,
                 signOut,
-                handleAuthRedirect,
             }}
         >
             {children}
