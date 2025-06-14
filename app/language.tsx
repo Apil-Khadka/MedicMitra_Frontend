@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, Image, StyleSheet, TouchableOpacity, useColor
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../components/ThemedText';
-import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/Colors';
+import { BorderRadius, Colors, Shadows, Spacing } from '../constants/Colors';
 
 export default function LanguageSelection() {
     const insets = useSafeAreaInsets();
@@ -17,6 +17,7 @@ export default function LanguageSelection() {
     const [isLoading, setIsLoading] = useState(false);
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
+    const [defaultLanguage] = useState<Language>('en');
 
     const handleLanguageSelect = async (lang: Language) => {
         try {
@@ -62,10 +63,10 @@ export default function LanguageSelection() {
                     style={styles.textContainer}
                 >
                     <ThemedText variant="h1" color="text" style={styles.title}>
-                        {translations[language].welcome}
+                        {translations[defaultLanguage].welcome}
                     </ThemedText>
                     <ThemedText variant="body1" color="textSecondary" style={styles.subtitle}>
-                        {translations[language].subtitle}
+                        {translations[defaultLanguage].subtitle}
                     </ThemedText>
                 </Animated.View>
 
@@ -74,7 +75,7 @@ export default function LanguageSelection() {
                     style={styles.languageContainer}
                 >
                     <ThemedText variant="h3" color="text" style={styles.languageTitle}>
-                        {translations[language].selectLanguage}
+                        {translations[defaultLanguage].selectLanguage}
                     </ThemedText>
 
                     <View style={styles.buttonContainer}>
@@ -95,7 +96,7 @@ export default function LanguageSelection() {
                                 variant="button"
                                 color={language === 'en' ? 'buttonText' : 'text'}
                             >
-                                {translations[language].english}
+                                English
                             </ThemedText>
                         </TouchableOpacity>
 
@@ -116,7 +117,7 @@ export default function LanguageSelection() {
                                 variant="button"
                                 color={language === 'ne' ? 'buttonText' : 'text'}
                             >
-                                {translations[language].nepali}
+                                नेपाली
                             </ThemedText>
                         </TouchableOpacity>
 
@@ -137,7 +138,7 @@ export default function LanguageSelection() {
                                 variant="button"
                                 color={language === 'bh' ? 'buttonText' : 'text'}
                             >
-                                {translations[language].bhojpuri}
+                                भोजपुरी
                             </ThemedText>
                         </TouchableOpacity>
 
@@ -158,7 +159,7 @@ export default function LanguageSelection() {
                                 variant="button"
                                 color={language === 'mai' ? 'buttonText' : 'text'}
                             >
-                                {translations[language].maithili}
+                                मैथिली
                             </ThemedText>
                         </TouchableOpacity>
                     </View>
