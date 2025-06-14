@@ -1,227 +1,217 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import React from 'react';
-import { Dimensions, FlatList, StyleSheet, TouchableOpacity, useColorScheme, View } from 'react-native';
-import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
+import { useTheme } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Spacing, Typography } from '../../constants/Colors';
+import { Spacing, Typography } from '../../constants/Colors';
 import { useLanguage } from '../../contexts/LanguageContext';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface HistoryItem {
     id: string;
-    name: string;
+    medicineName: string;
     timestamp: string;
-    manufacturer: string;
-    dosage: string;
-    type: string;
+    status: 'success' | 'error';
 }
-
-interface HistoryItemProps {
-    item: HistoryItem;
-    colors: typeof Colors.light | typeof Colors.dark;
-    language: 'en' | 'ne';
-    index: number;
-}
-
-// Mock data for history items - replace with actual data from your backend
-const mockHistoryData: HistoryItem[] = [
-    {
-        id: '1',
-        name: 'Paracetamol 500mg',
-        timestamp: '2024-03-20T10:30:00',
-        manufacturer: 'ABC Pharma',
-        dosage: '500mg',
-        type: 'Tablet',
-    },
-    {
-        id: '2',
-        name: 'Amoxicillin 250mg',
-        timestamp: '2024-03-19T15:45:00',
-        manufacturer: 'XYZ Pharma',
-        dosage: '250mg',
-        type: 'Capsule',
-    },
-    // Add more mock data as needed
-];
-
-const HistoryItem = ({ item, colors, language, index }: HistoryItemProps) => {
-    const handlePress = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        // TODO: Navigate to medicine details
-        console.log('Medicine details:', item);
-    };
-
-    return (
-        <Animated.View
-            entering={FadeInRight.delay(index * 100).springify()}
-            style={[styles.historyItem, { backgroundColor: colors.card }]}
-        >
-            <TouchableOpacity
-                style={styles.historyItemContent}
-                onPress={handlePress}
-                activeOpacity={0.7}
-            >
-                <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-                    <Ionicons name="medical" size={24} color={colors.primary} />
-                </View>
-                <View style={styles.medicineInfo}>
-                    <Animated.Text
-                        entering={FadeInDown.delay(index * 100 + 200).springify()}
-                        style={[styles.medicineName, { color: colors.text }]}
-                    >
-                        {item.name}
-                    </Animated.Text>
-                    <Animated.Text
-                        entering={FadeInDown.delay(index * 100 + 300).springify()}
-                        style={[styles.medicineDetails, { color: colors.textSecondary }]}
-                    >
-                        {language === 'en'
-                            ? `${item.type} • ${item.dosage} • ${item.manufacturer}`
-                            : `${item.type} • ${item.dosage} • ${item.manufacturer}`
-                        }
-                    </Animated.Text>
-                    <Animated.Text
-                        entering={FadeInDown.delay(index * 100 + 400).springify()}
-                        style={[styles.timestamp, { color: colors.textSecondary }]}
-                    >
-                        {new Date(item.timestamp).toLocaleString(language === 'en' ? 'en-US' : 'ne-NP')}
-                    </Animated.Text>
-                </View>
-                <Ionicons name="chevron-forward" size={24} color={colors.textSecondary} />
-            </TouchableOpacity>
-        </Animated.View>
-    );
-};
 
 export default function HistoryScreen() {
-    const colorScheme = useColorScheme();
-    const colors = Colors[colorScheme ?? 'light'];
-    const { language } = useLanguage();
+    const theme = useTheme();
     const insets = useSafeAreaInsets();
+    const { language } = useLanguage();
+    const [isLoading, setIsLoading] = useState(false);
+    const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+
+    const styles = StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: theme.colors.background,
+        },
+        header: {
+            padding: Spacing.lg,
+            paddingTop: Spacing.xl,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+        },
+        title: {
+            ...Typography.h1,
+            fontSize: 24,
+            color: theme.colors.text,
+        },
+        clearButton: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: Spacing.sm,
+        },
+        clearButtonText: {
+            ...Typography.button,
+            color: theme.colors.primary,
+            marginLeft: Spacing.xs,
+        },
+        listContent: {
+            padding: Spacing.lg,
+            paddingTop: 0,
+        },
+        historyItem: {
+            padding: Spacing.lg,
+            borderRadius: 12,
+            marginBottom: Spacing.md,
+            backgroundColor: theme.colors.card,
+            elevation: 2,
+            shadowColor: theme.colors.text,
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+        },
+        historyHeader: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: Spacing.xs,
+        },
+        medicineName: {
+            ...Typography.h3,
+            fontSize: 18,
+            color: theme.colors.text,
+            flex: 1,
+        },
+        timestamp: {
+            ...Typography.caption,
+            fontSize: 12,
+            color: theme.colors.text,
+            opacity: 0.6,
+        },
+        statusContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: Spacing.xs,
+        },
+        statusIcon: {
+            marginRight: Spacing.xs,
+        },
+        statusText: {
+            ...Typography.caption,
+            fontSize: 12,
+        },
+        emptyState: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: Spacing.xl,
+            marginTop: Spacing.xl * 2,
+        },
+        emptyStateIcon: {
+            opacity: 0.5,
+            marginBottom: Spacing.lg,
+        },
+        emptyStateTitle: {
+            ...Typography.h2,
+            fontSize: 20,
+            color: theme.colors.text,
+            marginBottom: Spacing.sm,
+            textAlign: 'center',
+        },
+        emptyStateText: {
+            ...Typography.body1,
+            fontSize: 16,
+            color: theme.colors.text,
+            textAlign: 'center',
+            opacity: 0.7,
+        },
+    });
+
+    const handleClearHistory = async () => {
+        setIsLoading(true);
+        try {
+            // TODO: Implement clear history functionality
+            setHistoryItems([]);
+        } catch (error) {
+            console.error('Error clearing history:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const renderEmptyState = () => (
+        <View style={styles.emptyState}>
+            <Ionicons
+                name="time-outline"
+                size={64}
+                color={theme.colors.text}
+                style={styles.emptyStateIcon}
+            />
+            <Text style={styles.emptyStateTitle}>
+                {language === 'en' ? 'No History Yet' : 'अहिलेसम्म कुनै इतिहास छैन'}
+            </Text>
+            <Text style={styles.emptyStateText}>
+                {language === 'en'
+                    ? 'Your scanned medicines will appear here'
+                    : 'तपाईंले स्क्यान गरेका औषधिहरू यहाँ देखा पर्नेछन्'}
+            </Text>
+        </View>
+    );
+
+    const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
+        <TouchableOpacity
+            style={styles.historyItem}
+            onPress={() => {/* TODO: Implement history item details view */}}
+        >
+            <View style={styles.historyHeader}>
+                <Text style={styles.medicineName}>{item.medicineName}</Text>
+                <Text style={styles.timestamp}>{item.timestamp}</Text>
+            </View>
+            <View style={styles.statusContainer}>
+                <Ionicons
+                    name={item.status === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                    size={16}
+                    color={item.status === 'success' ? theme.colors.primary : theme.colors.notification}
+                    style={styles.statusIcon}
+                />
+                <Text style={[
+                    styles.statusText,
+                    { color: item.status === 'success' ? theme.colors.primary : theme.colors.notification }
+                ]}>
+                    {item.status === 'success'
+                        ? (language === 'en' ? 'Successfully scanned' : 'सफलतापूर्वक स्क्यान गरियो')
+                        : (language === 'en' ? 'Scan failed' : 'स्क्यान असफल भयो')}
+                </Text>
+            </View>
+        </TouchableOpacity>
+    );
 
     return (
-        <View style={[
-            styles.container,
-            {
-                backgroundColor: colors.background,
-                paddingTop: Spacing.lg + insets.top,
-            }
-        ]}>
-            <Animated.Text
-                entering={FadeInDown.duration(500).springify()}
-                style={[styles.title, { color: colors.text }]}
-            >
-                {language === 'en' ? 'Scan History' : 'स्क्यान इतिहास'}
-            </Animated.Text>
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+            <View style={styles.header}>
+                <Text style={styles.title}>
+                    {language === 'en' ? 'Scan History' : 'स्क्यान इतिहास'}
+                </Text>
+                {historyItems.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.clearButton}
+                        onPress={handleClearHistory}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color={theme.colors.primary} />
+                        ) : (
+                            <>
+                                <Ionicons name="trash-outline" size={20} color={theme.colors.primary} />
+                                <Text style={styles.clearButtonText}>
+                                    {language === 'en' ? 'Clear' : 'खाली गर्नुहोस्'}
+                                </Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
+                )}
+            </View>
 
             <FlatList
-                data={mockHistoryData}
-                renderItem={({ item, index }) => (
-                    <HistoryItem
-                        item={item}
-                        colors={colors}
-                        language={language}
-                        index={index}
-                    />
-                )}
+                data={historyItems}
+                renderItem={renderHistoryItem}
                 keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContainer}
+                contentContainerStyle={styles.listContent}
+                ListEmptyComponent={renderEmptyState}
                 showsVerticalScrollIndicator={false}
-                ItemSeparatorComponent={() => (
-                    <View style={[styles.separator, { backgroundColor: colors.border }]} />
-                )}
-                ListEmptyComponent={() => (
-                    <Animated.View
-                        entering={FadeInDown.delay(200).springify()}
-                        style={styles.emptyContainer}
-                    >
-                        <Ionicons
-                            name="scan-outline"
-                            size={64}
-                            color={colors.textSecondary}
-                            style={styles.emptyIcon}
-                        />
-                        <Animated.Text
-                            entering={FadeInDown.delay(300).springify()}
-                            style={[styles.emptyText, { color: colors.textSecondary }]}
-                        >
-                            {language === 'en'
-                                ? 'No scan history yet'
-                                : 'अहिलेसम्म कुनै स्क्यान इतिहास छैन'
-                            }
-                        </Animated.Text>
-                    </Animated.View>
-                )}
             />
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        paddingHorizontal: Spacing.lg,
-    },
-    title: {
-        ...Typography.h1,
-        marginBottom: Spacing.xl,
-    },
-    listContainer: {
-        paddingBottom: Spacing.xl,
-    },
-    historyItem: {
-        borderRadius: 12,
-        marginBottom: Spacing.sm,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    historyItemContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: Spacing.md,
-    },
-    iconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: Spacing.md,
-    },
-    medicineInfo: {
-        flex: 1,
-    },
-    medicineName: {
-        ...Typography.h3,
-        marginBottom: 4,
-    },
-    medicineDetails: {
-        ...Typography.body2,
-        marginBottom: 4,
-    },
-    timestamp: {
-        ...Typography.caption,
-    },
-    separator: {
-        height: 1,
-        marginVertical: Spacing.sm,
-    },
-    emptyContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: Spacing.xl * 2,
-    },
-    emptyIcon: {
-        marginBottom: Spacing.lg,
-    },
-    emptyText: {
-        ...Typography.body1,
-        textAlign: 'center',
-    },
-});

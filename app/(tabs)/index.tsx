@@ -1,194 +1,325 @@
-import { Colors, Spacing, Typography } from '@/constants/Colors';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
-import React, { useState } from 'react';
-import { Animated, Dimensions, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Spacing, Typography } from '../../constants/Colors';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
-export default function TabsIndexScreen() {
-    const colorScheme = useColorScheme();
-    const colors = Colors[colorScheme ?? 'light'];
+export default function HomeScreen() {
+    const router = useRouter();
+    const theme = useTheme();
+    const insets = useSafeAreaInsets();
     const { language } = useLanguage();
-    const [showHelp, setShowHelp] = useState(false);
-    const [scaleAnim] = useState(new Animated.Value(1));
+    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const rotateAnim = React.useRef(new Animated.Value(0)).current;
+    const fadeAnim = React.useRef(new Animated.Value(0)).current;
+    const [showFeatureCard, setShowFeatureCard] = React.useState(false);
 
-    const handleCameraPress = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        Animated.sequence([
-            Animated.timing(scaleAnim, {
-                toValue: 0.9,
-                duration: 100,
-                useNativeDriver: true,
-            }),
-            Animated.timing(scaleAnim, {
+    useEffect(() => {
+        // Start animations when component mounts
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 100,
+                duration: 1000,
                 useNativeDriver: true,
             }),
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(scaleAnim, {
+                        toValue: 1.1,
+                        duration: 1500,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(scaleAnim, {
+                        toValue: 1,
+                        duration: 1500,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ),
+            Animated.loop(
+                Animated.timing(rotateAnim, {
+                    toValue: 1,
+                    duration: 20000,
+                    useNativeDriver: true,
+                })
+            ),
         ]).start();
-        // TODO: Implement camera functionality
+    }, []);
+
+    const spin = rotateAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: ['0deg', '360deg'],
+    });
+
+    const handleCameraPress = async () => {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // TODO: Implement camera screen
         console.log('Camera pressed');
     };
 
     const handleHelpPress = () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setShowHelp(true);
+        setShowFeatureCard(true);
     };
 
-    const helpText = language === 'en'
-        ? "This is MedicMitra. You can scan a medicine and get the basic characteristics of the said medicine."
-        : "यो MedicMitra हो। तपाईंले औषधि स्क्यान गरेर उक्त औषधिको आधारभूत विशेषताहरू प्राप्त गर्न सक्नुहुन्छ।";
+    const handleCloseFeatureCard = () => {
+        setShowFeatureCard(false);
+    };
+
+    const styles = StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: theme.colors.background,
+        },
+        background: {
+            flex: 1,
+            width: '100%',
+            height: '100%',
+        },
+        content: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+        },
+        header: {
+            position: 'absolute',
+            top: insets.top + Spacing.xl,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            zIndex: 1,
+        },
+        subtitle: {
+            ...Typography.body1,
+            fontSize: 20,
+            color: theme.colors.text,
+            textAlign: 'center',
+            opacity: 0.9,
+            marginBottom: Spacing.xl,
+            fontWeight: '500',
+        },
+        cameraContainer: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: height * 0.1,
+        },
+        cameraButton: {
+            width: width * 0.4,
+            height: width * 0.4,
+            borderRadius: width * 0.2,
+            backgroundColor: theme.colors.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            elevation: 8,
+            shadowColor: theme.colors.primary,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+        },
+        cameraIcon: {
+            color: '#FFFFFF',
+            fontSize: width * 0.15,
+        },
+        cameraText: {
+            ...Typography.button,
+            color: theme.colors.text,
+            marginTop: Spacing.md,
+            fontSize: 18,
+            fontWeight: '600',
+        },
+        helpButton: {
+            position: 'absolute',
+            bottom: insets.bottom + Spacing.xl,
+            right: Spacing.xl,
+            borderRadius: 30,
+            paddingVertical: Spacing.sm,
+            paddingHorizontal: Spacing.lg,
+            elevation: 4,
+            shadowColor: theme.colors.text,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+        },
+        helpButtonContent: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.sm,
+        },
+        helpText: {
+            ...Typography.button,
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        floatingOrb: {
+            position: 'absolute',
+            width: 200,
+            height: 200,
+            borderRadius: 100,
+            opacity: 0.1,
+        },
+        featureCard: {
+            position: 'absolute',
+            width: width * 0.8,
+            padding: Spacing.lg,
+            borderRadius: 16,
+            backgroundColor: theme.colors.card,
+            elevation: 4,
+            shadowColor: theme.colors.text,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+        },
+        featureTitle: {
+            ...Typography.h2,
+            color: theme.colors.text,
+            marginBottom: Spacing.sm,
+        },
+        featureText: {
+            ...Typography.body1,
+            color: theme.colors.text,
+            opacity: 0.8,
+        },
+        patternDot: {
+            position: 'absolute',
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+        },
+        closeButton: {
+            position: 'absolute',
+            top: Spacing.sm,
+            right: Spacing.sm,
+            padding: Spacing.xs,
+            zIndex: 1,
+        },
+    });
 
     return (
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-            {/* Camera Button */}
-            <TouchableOpacity
-                style={styles.cameraButton}
-                onPress={handleCameraPress}
-                activeOpacity={0.8}
-            >
+        <View style={styles.container}>
+            <LinearGradient
+                colors={[
+                    theme.colors.background,
+                    `${theme.colors.primary}10`,
+                    theme.colors.background,
+                ]}
+                style={StyleSheet.absoluteFill}
+            />
+
+            {/* Animated background pattern */}
+            <View style={StyleSheet.absoluteFill}>
+                {[...Array(20)].map((_, i) => (
+                    <Animated.View
+                        key={i}
+                        style={[
+                            styles.patternDot,
+                            {
+                                backgroundColor: theme.colors.primary,
+                                top: `${Math.random() * 100}%`,
+                                left: `${Math.random() * 100}%`,
+                                transform: [
+                                    { rotate: spin },
+                                    { scale: Math.random() * 0.5 + 0.5 },
+                                ],
+                                opacity: 0.1,
+                            },
+                        ]}
+                    />
+                ))}
+            </View>
+
+            <View style={styles.content}>
+                <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
+                    <Text style={styles.subtitle}>
+                        {language === 'en'
+                            ? 'Your Digital Health Assistant'
+                            : 'आपको डिजिटल स्वास्थ्य सहायक'}
+                    </Text>
+                </Animated.View>
+
                 <Animated.View
                     style={[
-                        styles.cameraIconContainer,
+                        styles.cameraContainer,
                         {
-                            backgroundColor: colors.primary,
                             transform: [{ scale: scaleAnim }],
+                            opacity: fadeAnim,
                         },
                     ]}
                 >
-                    <Ionicons name="camera" size={80} color={colors.buttonText} />
+                    <TouchableOpacity
+                        style={styles.cameraButton}
+                        onPress={handleCameraPress}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="camera" style={styles.cameraIcon} />
+                    </TouchableOpacity>
+                    <Text style={styles.cameraText}>
+                        {language === 'en' ? 'Scan Medicine' : 'औषधि स्क्यान गर्नुहोस्'}
+                    </Text>
                 </Animated.View>
-            </TouchableOpacity>
 
-            {/* Help Button */}
-            <TouchableOpacity
-                style={[styles.helpButton, { backgroundColor: colors.card }]}
-                onPress={handleHelpPress}
-                activeOpacity={0.7}
-            >
-                <Ionicons name="help-circle" size={32} color={colors.primary} />
-            </TouchableOpacity>
-
-            {/* Help Modal */}
-            <Modal
-                visible={showHelp}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setShowHelp(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setShowHelp(false)}
-                >
-                    <View
+                {showFeatureCard && (
+                    <Animated.View
                         style={[
-                            styles.modalContent,
+                            styles.featureCard,
                             {
-                                backgroundColor: colors.card,
-                                borderColor: colors.border,
+                                bottom: height * 0.25,
+                                opacity: fadeAnim,
+                                transform: [{ translateY: fadeAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [20, 0],
+                                    })}],
                             },
                         ]}
                     >
-                        <Ionicons
-                            name="information-circle"
-                            size={48}
-                            color={colors.primary}
-                            style={styles.modalIcon}
-                        />
-                        <Text style={[styles.modalText, { color: colors.text }]}>
-                            {helpText}
-                        </Text>
                         <TouchableOpacity
-                            style={[styles.closeButton, { backgroundColor: colors.primary }]}
-                            onPress={() => setShowHelp(false)}
+                            style={styles.closeButton}
+                            onPress={handleCloseFeatureCard}
                         >
-                            <Text style={[styles.closeButtonText, { color: colors.buttonText }]}>
-                                {language === 'en' ? 'Close' : 'बन्द गर्नुहोस्'}
-                            </Text>
+                            <Ionicons name="close" size={24} color={theme.colors.text} />
                         </TouchableOpacity>
+                        <Text style={styles.featureTitle}>
+                            {language === 'en' ? 'How it works' : 'यो कसरी काम गर्छ'}
+                        </Text>
+                        <Text style={styles.featureText}>
+                            {language === 'en'
+                                ? 'Simply scan any medicine package or label to get instant information about the medicine, its uses, and precautions.'
+                                : 'कुनै पनि औषधि प्याकेज वा लेबल स्क्यान गरेर औषधिको बारेमा तुरुन्तै जानकारी, यसको प्रयोग र सावधानीहरू प्राप्त गर्नुहोस्।'}
+                        </Text>
+                    </Animated.View>
+                )}
+
+                <TouchableOpacity
+                    style={[
+                        styles.helpButton,
+                        {
+                            backgroundColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                            borderWidth: 1,
+                            borderColor: theme.dark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                        }
+                    ]}
+                    onPress={handleHelpPress}
+                >
+                    <View style={styles.helpButtonContent}>
+                        <Ionicons
+                            name="help-circle-outline"
+                            size={24}
+                            color={theme.colors.primary}
+                        />
+                        <Text style={[styles.helpText, { color: theme.colors.primary }]}>
+                            {language === 'en' ? 'How it works' : 'कसरी काम गर्छ'}
+                        </Text>
                     </View>
                 </TouchableOpacity>
-            </Modal>
+            </View>
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cameraButton: {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: [{ translateX: -60 }, { translateY: -60 }],
-    },
-    cameraIconContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-    },
-    helpButton: {
-        position: 'absolute',
-        bottom: 40,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalContent: {
-        width: SCREEN_WIDTH * 0.85,
-        padding: Spacing.xl,
-        borderRadius: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-    },
-    modalIcon: {
-        marginBottom: Spacing.lg,
-    },
-    modalText: {
-        ...Typography.body1,
-        textAlign: 'center',
-        marginBottom: Spacing.xl,
-        lineHeight: 24,
-    },
-    closeButton: {
-        paddingVertical: Spacing.sm,
-        paddingHorizontal: Spacing.xl,
-        borderRadius: 8,
-    },
-    closeButtonText: {
-        ...Typography.button,
-        fontSize: 16,
-    },
-});
