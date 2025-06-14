@@ -246,7 +246,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-
     // Add a function to check and refresh token if needed
     const checkAndRefreshToken = async () => {
         try {
