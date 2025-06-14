@@ -1,8 +1,9 @@
+import { storage } from '@/utils/Storage';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
-export type Language = 'en' | 'ne';
+export type Language = 'en' | 'ne' | 'bh' | 'mai';
 
 type LanguageContextType = {
     language: Language;
@@ -54,11 +55,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
     const setLanguage = async (lang: Language) => {
         try {
-            if (Platform.OS === 'web') {
-                localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
-            } else {
-                await SecureStore.setItemAsync(LANGUAGE_STORAGE_KEY, lang);
-            }
+            await storage.setLanguage(lang);
             setLanguageState(lang);
         } catch (error) {
             console.error('Error saving language:', error);
@@ -80,6 +77,8 @@ export const translations = {
         selectLanguage: 'Select Language',
         english: 'English',
         nepali: 'Nepali',
+        bhojpuri: 'Bhojpuri',
+        maithili: 'Maithili',
         signIn: 'Sign In',
         signUp: 'Sign Up',
         email: 'Email',
@@ -98,6 +97,8 @@ export const translations = {
         selectLanguage: 'भाषा चयन गर्नुहोस्',
         english: 'अंग्रेजी',
         nepali: 'नेपाली',
+        bhojpuri: 'भोजपुरी',
+        maithili: 'मैथिली',
         signIn: 'साइन इन',
         signUp: 'साइन अप',
         email: 'इमेल',
@@ -108,6 +109,46 @@ export const translations = {
         createAccount: 'खाता सिर्जना गर्नुहोस्',
         confirmPassword: 'पासवर्ड पुष्टि गर्नुहोस्',
         continue: 'जारी राख्नुहोस्',
+        name: 'पूरा नाम',
+    },
+    bh: {
+        welcome: 'मेडिकमित्रा में स्वागत बा',
+        subtitle: 'राउर डिजिटल स्वास्थ्य सहायक',
+        selectLanguage: 'भाषा चुनीं',
+        english: 'अंग्रेजी',
+        nepali: 'नेपाली',
+        bhojpuri: 'भोजपुरी',
+        maithili: 'मैथिली',
+        signIn: 'साइन इन',
+        signUp: 'साइन अप',
+        email: 'ईमेल',
+        password: 'पासवर्ड',
+        firstName: 'पहिलका नाम',
+        lastName: 'थर',
+        forgotPassword: 'पासवर्ड भूल गइल बानी?',
+        createAccount: 'खाता बनावीं',
+        confirmPassword: 'पासवर्ड कन्फर्म करीं',
+        continue: 'जारी रखीं',
+        name: 'पूरा नाम',
+    },
+    mai: {
+        welcome: 'मेडिकमित्रा में स्वागत अछि',
+        subtitle: 'अहाँक डिजिटल स्वास्थ्य सहायक',
+        selectLanguage: 'भाषा चुनू',
+        english: 'अंग्रेजी',
+        nepali: 'नेपाली',
+        bhojpuri: 'भोजपुरी',
+        maithili: 'मैथिली',
+        signIn: 'साइन इन',
+        signUp: 'साइन अप',
+        email: 'ईमेल',
+        password: 'पासवर्ड',
+        firstName: 'पहिल नाम',
+        lastName: 'थर',
+        forgotPassword: 'पासवर्ड भूलि गेल छथि?',
+        createAccount: 'खाता बनाऊ',
+        confirmPassword: 'पासवर्ड पुष्टि करू',
+        continue: 'जारी राखू',
         name: 'पूरा नाम',
     },
 };

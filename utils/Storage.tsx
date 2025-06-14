@@ -1,5 +1,5 @@
+import { AUTH_CONFIG } from "@/config/constants";
 import * as SecureStore from "expo-secure-store";
-import {AUTH_CONFIG} from "@/config/constants";
 
 export const storage = {
     setAccessToken: async function (token: string) {
@@ -58,6 +58,21 @@ export const storage = {
             await SecureStore.deleteItemAsync(AUTH_CONFIG.TOKEN_KEYS.USER);
         } catch (error) {
             console.error('Error clearing storage:', error);
+        }
+    },
+    async setLanguage(language: string) {
+        try {
+            await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.LANGUAGE, language);
+        } catch (error) {
+            console.error('Error storing language:', error);
+        }
+    },
+    async getLanguage() {
+        try {
+            return await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.LANGUAGE);
+        } catch (error) {
+            console.error('Error getting language:', error);
+            return null;
         }
     }
 };

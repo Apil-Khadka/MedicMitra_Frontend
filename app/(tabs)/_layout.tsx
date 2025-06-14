@@ -1,6 +1,6 @@
 import { Spacing, Typography } from '@/constants/Colors';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
+import { Language, LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -34,7 +34,13 @@ function RootLayoutContent() {
     }
 
     const handleLanguageSwitch = () => {
-        setLanguage(language === 'en' ? 'ne' : 'en');
+        const nextLanguage: Record<Language, Language> = {
+            'en': 'ne',
+            'ne': 'bh',
+            'bh': 'mai',
+            'mai': 'en'
+        };
+        setLanguage(nextLanguage[language]);
     };
 
     const handleProfilePress = () => {
@@ -217,7 +223,9 @@ function RootLayoutContent() {
                                     onPress={handleLanguageSwitch}
                                 >
                                     <Text style={[styles.languageText, { color: colors.primary }]}>
-                                        {language === 'en' ? 'ने' : 'EN'}
+                                        {language === 'en' ? 'ने' :
+                                            language === 'ne' ? 'भो' :
+                                                language === 'bh' ? 'मै' : 'EN'}
                                     </Text>
                                 </TouchableOpacity>
                             </View>

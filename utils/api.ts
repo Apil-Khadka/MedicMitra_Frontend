@@ -1,5 +1,6 @@
-import * as SecureStore from 'expo-secure-store';
 import { API_CONFIG, AUTH_CONFIG, PLATFORM_CONFIG } from '@/config/constants';
+import * as SecureStore from 'expo-secure-store';
+import { storage } from './Storage';
 
 // Helper function to get token based on platform
 async function getToken(key: string): Promise<string | null> {
@@ -20,10 +21,12 @@ async function setToken(key: string, value: string): Promise<void> {
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
     const accessToken = await getToken(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
+    const language = await storage.getLanguage();
 
     const headers = {
         'Content-Type': 'application/json',
         ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        ...(language ? { 'Accept-Language': language } : {}),
         ...options.headers,
     };
 

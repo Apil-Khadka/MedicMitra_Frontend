@@ -13,6 +13,7 @@ export const AUTH_CONFIG = {
         ACCESS_TOKEN: 'access_token',
         REFRESH_TOKEN: 'refresh_token',
         USER: 'user',
+        LANGUAGE: 'language',
     },
     AUTH_ENDPOINTS: {
         SIGNIN: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/auth/signin`,
@@ -21,7 +22,7 @@ export const AUTH_CONFIG = {
         LOGOUT: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/logout`,
         USER_ME: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/me`,
         USER_UPDATE: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/user/update`,
-        
+
     },
 } as const;
 

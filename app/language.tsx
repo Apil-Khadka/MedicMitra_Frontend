@@ -13,7 +13,7 @@ export default function LanguageSelection() {
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
 
-    const handleLanguageSelect = async (selectedLanguage: 'en' | 'ne') => {
+    const handleLanguageSelect = async (selectedLanguage: 'en' | 'ne' | 'bh' | 'mai') => {
         await setLanguage(selectedLanguage);
         router.replace('/(auth)/sign-in');
     };
@@ -93,6 +93,44 @@ export default function LanguageSelection() {
                                 color={language === 'ne' ? 'buttonText' : 'text'}
                             >
                                 {translations[language].nepali}
+                            </ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.languageButton,
+                                language === 'bh' && styles.languageButtonActive,
+                                {
+                                    backgroundColor: language === 'bh' ? colors.primary : colors.card,
+                                    borderColor: colors.border,
+                                } as ViewStyle
+                            ]}
+                            onPress={() => handleLanguageSelect('bh')}
+                        >
+                            <ThemedText
+                                variant="button"
+                                color={language === 'bh' ? 'buttonText' : 'text'}
+                            >
+                                {translations[language].bhojpuri}
+                            </ThemedText>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[
+                                styles.languageButton,
+                                language === 'mai' && styles.languageButtonActive,
+                                {
+                                    backgroundColor: language === 'mai' ? colors.primary : colors.card,
+                                    borderColor: colors.border,
+                                } as ViewStyle
+                            ]}
+                            onPress={() => handleLanguageSelect('mai')}
+                        >
+                            <ThemedText
+                                variant="button"
+                                color={language === 'mai' ? 'buttonText' : 'text'}
+                            >
+                                {translations[language].maithili}
                             </ThemedText>
                         </TouchableOpacity>
                     </View>
