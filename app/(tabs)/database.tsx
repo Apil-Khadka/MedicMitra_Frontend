@@ -3,18 +3,19 @@ import { useTheme } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AUTH_CONFIG } from '@/config/constants';
-import { Spacing } from '@/constants/Colors';
-import { fetchWithAuth } from '@/utils/api';
+import { AUTH_CONFIG } from '../../config/constants';
+import { Spacing } from '../../constants/Colors';
+import { fetchWithAuth } from '../../utils/api';
 import { BackButton } from '../components/database/BackButton';
 import { MedicineList } from '../components/database/MedicineList';
 import { SearchBar } from '../components/database/SearchBar';
 import TopicList from '../components/database/TopicList';
 import { Cache, Medicine, Topic } from '../components/database/types';
+
 export default function DatabaseScreen() {
     const theme = useTheme();
     const insets = useSafeAreaInsets();
-    const { language } = useLanguage();
+    const { language, setLanguage } = useLanguage();
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
@@ -130,6 +131,10 @@ export default function DatabaseScreen() {
         handleSearch();
     };
 
+    const handleLanguageChange = (newLanguage: 'en' | 'ne' | 'bh' | 'mai') => {
+        setLanguage(newLanguage);
+    };
+
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <View style={styles.searchContainer}>
@@ -164,6 +169,7 @@ export default function DatabaseScreen() {
                     medicines={filteredMedicines}
                     theme={theme}
                     language={language}
+                    onLanguageChange={handleLanguageChange}
                 />
             ) : (
                 <TopicList

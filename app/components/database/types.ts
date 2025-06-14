@@ -4,6 +4,24 @@ export interface Medicine {
     atcCode: string;
     description: string;
     isVerified: boolean;
+    details?: {
+        [key: string]: string | null;
+    };
+    sideEffects?: {
+        [key: string]: string[] | null;
+    };
+    brandNames?: {
+        [key: string]: string[] | null;
+    };
+    genericNames?: {
+        [key: string]: string[] | null;
+    };
+    dosageForms?: {
+        [key: string]: string[] | null;
+    };
+    diseases?: {
+        [key: string]: string[] | null;
+    };
 }
 
 export interface Topic {
@@ -37,6 +55,7 @@ export interface MedicineListProps {
     medicines: Medicine[];
     theme: any;
     language: 'en' | 'ne' | 'bh' | 'mai';
+    onLanguageChange: (language: 'en' | 'ne' | 'bh' | 'mai') => void;
 }
 
 export interface BackButtonProps {
@@ -49,4 +68,11 @@ export interface EmptyStateProps {
     type: 'topic' | 'medicine';
     theme: any;
     language: 'en' | 'ne' | 'bh' | 'mai';
+}
+
+export interface MedicineDetailsProps {
+    medicine: Medicine;
+    theme: any;
+    language: 'en' | 'ne' | 'bh' | 'mai';
+    onLanguageChange: (language: 'en' | 'ne' | 'bh' | 'mai') => void;
 }
