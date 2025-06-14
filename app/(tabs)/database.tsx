@@ -11,7 +11,6 @@ import { MedicineList } from '../components/database/MedicineList';
 import { SearchBar } from '../components/database/SearchBar';
 import TopicList from '../components/database/TopicList';
 import { Cache, Medicine, Topic } from '../components/database/types';
-
 export default function DatabaseScreen() {
     const theme = useTheme();
     const insets = useSafeAreaInsets();
