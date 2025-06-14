@@ -1,3 +1,6 @@
+import { Spacing, Typography } from '@/constants/Colors';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
@@ -7,9 +10,6 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 import 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Spacing, Typography } from '../../constants/Colors';
-import { AuthProvider, useAuth } from '../../contexts/AuthContext';
-import { LanguageProvider, useLanguage } from '../../contexts/LanguageContext';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -20,9 +20,10 @@ function RootLayoutContent() {
     const [loaded] = useFonts({
         SpaceMono: require('../../assets/fonts/SpaceMono-Regular.ttf'),
     });
-    const colors = Colors[colorScheme ?? 'light'];
     const insets = useSafeAreaInsets();
     const { signOut } = useAuth();
+    const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+    const colors = theme.colors;
 
     if (!loaded || isAuthLoading || isLanguageLoading) {
         return (
@@ -55,7 +56,6 @@ function RootLayoutContent() {
     const handleSignOut = async () => {
         try {
             await signOut();
-            router.replace('/(auth)/sign-in');
         } catch (error) {
             console.error('Error signing out:', error);
         }
@@ -66,92 +66,161 @@ function RootLayoutContent() {
         console.log('Camera pressed');
     };
 
+    const styles = StyleSheet.create({
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: Spacing.lg,
+            paddingVertical: Spacing.md,
+            height: 60,
+            backgroundColor: colors.background,
+            borderBottomColor: colors.border,
+            borderBottomWidth: 1,
+            elevation: 4,
+            shadowColor: colors.text,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+        },
+        headerContent: {
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'relative',
+        },
+        menuButton: {
+            width: 44,
+            height: 44,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1,
+        },
+        titleContainer: {
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 0,
+        },
+        title: {
+            ...Typography.h1,
+            fontSize: 24,
+            fontWeight: 'bold',
+            textAlign: 'center',
+        },
+        languageButton: {
+            width: 44,
+            height: 44,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1,
+        },
+        languageText: {
+            ...Typography.button,
+            fontSize: 16,
+            fontWeight: '600',
+        },
+        menuItem: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            padding: Spacing.sm,
+            gap: Spacing.sm,
+        },
+        menuText: {
+            ...Typography.body1,
+            fontSize: 16,
+        },
+    });
+
     return (
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider value={theme}>
             <Stack
                 screenOptions={{
                     header: () => (
                         <View style={[styles.header, {
-                            paddingTop: insets.top,
-                            backgroundColor: colors.background,
-                            borderBottomColor: colors.border,
-                            borderBottomWidth: 1,
-                            elevation: 4,
-                            shadowColor: colors.text,
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.1,
-                            shadowRadius: 4,
+                            paddingTop: insets.top + Spacing.md,
                         }]}>
-                            <TouchableOpacity
-                                style={styles.menuButton}
-                                onPress={() => {}}
-                            >
-                                <Menu>
-                                    <MenuTrigger>
-                                        <Ionicons name="menu" size={28} color={colors.text} />
-                                    </MenuTrigger>
-                                    <MenuOptions customStyles={{
-                                        optionsContainer: {
-                                            backgroundColor: colors.card,
-                                            borderRadius: 8,
-                                            padding: 8,
-                                            marginTop: 8,
-                                        }
-                                    }}>
-                                        <MenuOption onSelect={handleHomePress}>
-                                            <View style={styles.menuItem}>
-                                                <Ionicons name="home-outline" size={24} color={colors.text} />
-                                                <Text style={[styles.menuText, { color: colors.text }]}>
-                                                    {language === 'en' ? 'Home' : 'गृहपृष्ठ'}
-                                                </Text>
-                                            </View>
-                                        </MenuOption>
-                                        <MenuOption onSelect={handleProfilePress}>
-                                            <View style={styles.menuItem}>
-                                                <Ionicons name="person-circle-outline" size={24} color={colors.text} />
-                                                <Text style={[styles.menuText, { color: colors.text }]}>
-                                                    {language === 'en' ? 'User Profile' : 'प्रयोगकर्ता प्रोफाइल'}
-                                                </Text>
-                                            </View>
-                                        </MenuOption>
-                                        <MenuOption onSelect={handleDatabasePress}>
-                                            <View style={styles.menuItem}>
-                                                <Ionicons name="server-outline" size={24} color={colors.text} />
-                                                <Text style={[styles.menuText, { color: colors.text }]}>
-                                                    {language === 'en' ? 'Full Database' : 'पूर्ण डाटाबेस'}
-                                                </Text>
-                                            </View>
-                                        </MenuOption>
-                                        <MenuOption onSelect={handleHistoryPress}>
-                                            <View style={styles.menuItem}>
-                                                <Ionicons name="time-outline" size={24} color={colors.text} />
-                                                <Text style={[styles.menuText, { color: colors.text }]}>
-                                                    {language === 'en' ? 'History' : 'इतिहास'}
-                                                </Text>
-                                            </View>
-                                        </MenuOption>
-                                        <MenuOption onSelect={handleSignOut}>
-                                            <View style={styles.menuItem}>
-                                                <Ionicons name="log-out-outline" size={24} color={colors.error} />
-                                                <Text style={[styles.menuText, { color: colors.error }]}>
-                                                    {language === 'en' ? 'Sign Out' : 'साइन आउट'}
-                                                </Text>
-                                            </View>
-                                        </MenuOption>
-                                    </MenuOptions>
-                                </Menu>
-                            </TouchableOpacity>
+                            <View style={styles.headerContent}>
+                                {/* Left: Menu Button */}
+                                <TouchableOpacity
+                                    style={styles.menuButton}
+                                    onPress={() => {}}
+                                >
+                                    <Menu>
+                                        <MenuTrigger>
+                                            <Ionicons name="menu" size={28} color={colors.text} />
+                                        </MenuTrigger>
+                                        <MenuOptions customStyles={{
+                                            optionsContainer: {
+                                                backgroundColor: colors.card,
+                                                borderRadius: 8,
+                                                padding: 8,
+                                                marginTop: 8,
+                                                width: 200,
+                                            }
+                                        }}>
+                                            <MenuOption onSelect={handleHomePress}>
+                                                <View style={styles.menuItem}>
+                                                    <Ionicons name="home-outline" size={24} color={colors.text} />
+                                                    <Text style={[styles.menuText, { color: colors.text }]}>
+                                                        {language === 'en' ? 'Home' : 'गृहपृष्ठ'}
+                                                    </Text>
+                                                </View>
+                                            </MenuOption>
+                                            <MenuOption onSelect={handleProfilePress}>
+                                                <View style={styles.menuItem}>
+                                                    <Ionicons name="person-circle-outline" size={24} color={colors.text} />
+                                                    <Text style={[styles.menuText, { color: colors.text }]}>
+                                                        {language === 'en' ? 'User Profile' : 'प्रयोगकर्ता प्रोफाइल'}
+                                                    </Text>
+                                                </View>
+                                            </MenuOption>
+                                            <MenuOption onSelect={handleDatabasePress}>
+                                                <View style={styles.menuItem}>
+                                                    <Ionicons name="server-outline" size={24} color={colors.text} />
+                                                    <Text style={[styles.menuText, { color: colors.text }]}>
+                                                        {language === 'en' ? 'Full Database' : 'पूर्ण डाटाबेस'}
+                                                    </Text>
+                                                </View>
+                                            </MenuOption>
+                                            <MenuOption onSelect={handleHistoryPress}>
+                                                <View style={styles.menuItem}>
+                                                    <Ionicons name="time-outline" size={24} color={colors.text} />
+                                                    <Text style={[styles.menuText, { color: colors.text }]}>
+                                                        {language === 'en' ? 'History' : 'इतिहास'}
+                                                    </Text>
+                                                </View>
+                                            </MenuOption>
+                                            <MenuOption onSelect={handleSignOut}>
+                                                <View style={styles.menuItem}>
+                                                    <Ionicons name="log-out-outline" size={24} color={colors.text} />
+                                                    <Text style={[styles.menuText, { color: colors.text }]}>
+                                                        {language === 'en' ? 'Sign Out' : 'साइन आउट'}
+                                                    </Text>
+                                                </View>
+                                            </MenuOption>
+                                        </MenuOptions>
+                                    </Menu>
+                                </TouchableOpacity>
 
-                            <Text style={[styles.title, { color: colors.text }]}>MedicMitra</Text>
+                                {/* Center: Title */}
+                                <View style={styles.titleContainer}>
+                                    <Text style={[styles.title, { color: colors.text }]}>MedicMitra</Text>
+                                </View>
 
-                            <TouchableOpacity
-                                style={styles.languageButton}
-                                onPress={handleLanguageSwitch}
-                            >
-                                <Text style={[styles.languageText, { color: colors.primary }]}>
-                                    {language === 'en' ? 'ने' : 'EN'}
-                                </Text>
-                            </TouchableOpacity>
+                                {/* Right: Language Button */}
+                                <TouchableOpacity
+                                    style={styles.languageButton}
+                                    onPress={handleLanguageSwitch}
+                                >
+                                    <Text style={[styles.languageText, { color: colors.primary }]}>
+                                        {language === 'en' ? 'ने' : 'EN'}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     ),
                     headerShown: true,
@@ -198,49 +267,3 @@ export default function RootLayout() {
         </MenuProvider>
     );
 }
-
-const styles = StyleSheet.create({
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        height: 60,
-        zIndex: 1000,
-    },
-    menuButton: {
-        padding: Spacing.sm,
-        minWidth: 44,
-        minHeight: 44,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    title: {
-        ...Typography.h1,
-        fontSize: 24,
-        fontWeight: 'bold',
-    },
-    languageButton: {
-        padding: Spacing.sm,
-        minWidth: 44,
-        minHeight: 44,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    languageText: {
-        ...Typography.button,
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: Spacing.sm,
-        gap: Spacing.sm,
-    },
-    menuText: {
-        ...Typography.body1,
-        fontSize: 16,
-    },
-});

@@ -1,69 +1,8 @@
 import { router } from "expo-router";
-import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { API_CONFIG, AUTH_CONFIG, PLATFORM_CONFIG } from '@/config/constants';
 import { fetchWithAuth } from "@/utils/api";
-
-const storage = {
-    setAccessToken: async function (token: string) {
-        try {
-            await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN, token);
-        } catch (error) {
-            console.error('Error storing access token:', error);
-        }
-    },
-    async getAccessToken() {
-            try {
-                return await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
-            } catch (error) {
-                console.error('Error getting access token:', error);
-                return null;
-            }
-    },
-    async setRefreshToken(token: string) {
-            try {
-                await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN, token);
-            } catch (error) {
-                console.error('Error storing refresh token:', error);
-            }
-    },
-    async getRefreshToken() {
-            try {
-                return await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN);
-            } catch (error) {
-                console.error('Error getting refresh token:', error);
-                return null;
-        }
-    },
-    async setUser(user: any) {
-        const userData = JSON.stringify(user);
-            try {
-                await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.USER, userData);
-            } catch (error) {
-                console.error('Error storing user data:', error);
-        }
-    },
-
-    async getUser() {
-            try {
-                const userData = await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.USER);
-                return userData ? JSON.parse(userData) : null;
-            } catch (error) {
-                console.error('Error getting user data:', error);
-                return null;
-            }
-    },
-
-    async clear() {
-            try {
-                await SecureStore.deleteItemAsync(AUTH_CONFIG.TOKEN_KEYS.ACCESS_TOKEN);
-                await SecureStore.deleteItemAsync(AUTH_CONFIG.TOKEN_KEYS.REFRESH_TOKEN);
-                await SecureStore.deleteItemAsync(AUTH_CONFIG.TOKEN_KEYS.USER);
-            } catch (error) {
-                console.error('Error clearing storage:', error);
-            }
-    }
-};
+import { storage } from "@/utils/Storage";
 
 type User = {
     id: string;
@@ -84,15 +23,15 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-
-const BACKEND_URL = API_CONFIG.BACKEND_URL;
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        loadUser();
+        const init = async () => {
+            await loadUser();
+        };
+        init();
     }, []);
 
     const loadUser = async () => {
@@ -103,18 +42,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (userData && access_token) {
                 setUser(userData);
             } else if (userData) {
-                // If we have user data but no token, try to refresh
-                const refreshed = await checkAndRefreshToken();
-                if (refreshed) {
+                const isRefreshed = await checkAndRefreshToken();
+                if (isRefreshed) {
                     setUser(userData);
                 } else {
-                    // If refresh failed, clear user data
                     await storage.clear();
                     setUser(null);
                 }
             }
         } catch (error) {
-            console.error("Error loading user:", error);
+            if (__DEV__) console.error("Error loading user:", error);
         } finally {
             setIsLoading(false);
         }
@@ -125,45 +62,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(true);
             const response = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.SIGNIN}`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
                 credentials: PLATFORM_CONFIG.IS_WEB ? 'include' : 'omit',
             });
 
-            if (!response.ok) {
-                throw new Error("Login failed");
-            }
-
-            const json = await response.json();
-            const { access_token, refresh_token } = json.data;
-            console.error('access_token', access_token);
-            console.error('refresh_token', refresh_token);
-
-            // Store tokens using platform-specific storage
-            await storage.setAccessToken(access_token);
-            if (!PLATFORM_CONFIG.IS_WEB) {
-                await storage.setRefreshToken(refresh_token);
-            }
-
-            // Get user info
-            const userResponse = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.USER_ME);
-            if (!userResponse.ok) {
-                throw new Error("Failed to get user info");
-            }
-
-
-            const userData = await userResponse.json();
-
-            console.error('userData', userData);
-
-            await storage.setUser(userData.data);
-            setUser(userData);
-
-            router.replace("/(tabs)");
+            if (!response.ok) throw new Error("Login failed");
+            await handleAuthSuccess(await response.json());
         } catch (error) {
-            console.error("Error signing in:", error);
+            if (__DEV__) console.error("Error signing in:", error);
             throw error;
         } finally {
             setIsLoading(false);
@@ -175,43 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(true);
             const response = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.SIGNUP}`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password, firstName, lastName }),
-                credentials: PLATFORM_CONFIG.IS_WEB ? 'include' : 'omit',
+                credentials: 'omit',
             });
 
-            if (!response.ok) {
-                throw new Error("Registration failed");
-            }
-
-
-
-            const json = await response.json();
-            const { access_token, refresh_token } = json.data;
-            console.error('access_token', access_token);
-            console.error('refresh_token', refresh_token);
-
-            // Store tokens using platform-specific storage
-            await storage.setAccessToken(access_token);
-            await storage.setRefreshToken(refresh_token);
-
-
-            // Get user info
-            const userResponse = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.USER_ME);
-            if (!userResponse.ok) {
-                throw new Error("Failed to get user info");
-            }
-
-            const userData = await userResponse.json();
-            console.error('userData', userData);
-            await storage.setUser(userData.data);
-            setUser(userData);
-
-            router.replace("/(tabs)");
+            if (!response.ok) throw new Error("Registration failed");
+            await handleAuthSuccess(await response.json());
         } catch (error) {
-            console.error("Error signing up:", error);
+            if (__DEV__) console.error("Error signing up:", error);
             throw error;
         } finally {
             setIsLoading(false);
@@ -221,55 +100,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const signOut = async () => {
         try {
             setIsLoading(true);
-            await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.LOGOUT, {
+            const refresh_token = await storage.getRefreshToken();
+            const response = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.LOGOUT, {
                 method: "POST",
-                credentials: PLATFORM_CONFIG.IS_WEB ? 'include' : 'omit',
+                credentials: 'omit',
+                body: refresh_token
             });
+            console.error("signout response",response);
             await storage.clear();
-            console.error(storage.getUser());
             setUser(null);
-            console.error(storage.getUser());
             router.replace("/");
         } catch (error) {
-            console.error("Error signing out:", error);
+            if (__DEV__) console.error("Error signing out:", error);
             throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Add a function to check and refresh token if needed
     const checkAndRefreshToken = async () => {
         try {
             const currentAccessToken = await storage.getAccessToken();
             if (!currentAccessToken) return false;
 
-                const refresh_token = await storage.getRefreshToken();
-                if (!refresh_token) return false;
+            const refresh_token = await storage.getRefreshToken();
+            if (!refresh_token) return false;
 
-                const response = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.REFRESH}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ refresh_token }),
-                });
+            const response = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.REFRESH}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refresh_token }),
+            });
 
-                if (!response.ok) {
-                    throw new Error("Failed to refresh token");
-                }
+            if (!response.ok) throw new Error("Failed to refresh token");
 
-                const json = await response.json();
+            const json = await response.json();
             const { access_token, new_refresh_token } = json.data;
             await storage.setAccessToken(access_token);
-                await storage.setRefreshToken(new_refresh_token);
-                return true;
-
+            await storage.setRefreshToken(new_refresh_token);
+            return true;
         } catch (error) {
-            console.error("Error refreshing token:", error);
+            if (__DEV__) console.error("Error refreshing token:", error);
             return false;
         }
     };
+
+    async function handleAuthSuccess(json: any) {
+        const { access_token, refresh_token } = json.data;
+        await storage.setAccessToken(access_token);
+        await storage.setRefreshToken(refresh_token);
+
+        const userResponse = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.USER_ME);
+        if (!userResponse.ok) throw new Error("Failed to get user info");
+
+        const userData = await userResponse.json();
+        await storage.setUser(userData.data);
+        setUser(userData.data);
+
+        router.replace("/(tabs)");
+    }
 
     return (
         <AuthContext.Provider
