@@ -246,199 +246,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const signInWithGoogle = async () => {
-        try {
-            setIsLoading(true);
-            const redirectUri = makeRedirectUri({
-                scheme: OAUTH_CONFIG.REDIRECT_URI.SCHEME,
-                path: OAUTH_CONFIG.REDIRECT_URI.PATH,
-            });
-
-            const authUrl = `${API_CONFIG.BACKEND_URL}${OAUTH_CONFIG.PROVIDERS.GOOGLE}?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-            if (PLATFORM_CONFIG.IS_WEB) {
-                await handleAuth(authUrl, redirectUri);
-            } else {
-                const userData = await handleAuth(authUrl, redirectUri);
-                if (userData) {
-                    setUser(userData);
-                    router.replace("/(tabs)");
-                }
-            }
-        } catch (error) {
-            console.error("Error signing in with Google:", error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const signInWithGithub = async () => {
-        try {
-            setIsLoading(true);
-            const redirectUri = makeRedirectUri({
-                scheme: OAUTH_CONFIG.REDIRECT_URI.SCHEME,
-                path: OAUTH_CONFIG.REDIRECT_URI.PATH,
-            });
-
-            const authUrl = `${API_CONFIG.BACKEND_URL}${OAUTH_CONFIG.PROVIDERS.GITHUB}?redirect_uri=${encodeURIComponent(redirectUri)}`;
-
-            if (PLATFORM_CONFIG.IS_WEB) {
-                await handleAuth(authUrl, redirectUri);
-            } else {
-                const userData = await handleAuth(authUrl, redirectUri);
-                if (userData) {
-                    setUser(userData);
-                    router.replace("/(tabs)");
-                }
-            }
-        } catch (error) {
-            console.error("Error signing in with GitHub:", error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleAuthRedirect = async (url: string) => {
-        try {
-            setIsLoading(true);
-
-            // Handle web-specific flow
-            if (Platform.OS === 'web') {
-                // Handle both backend and frontend URLs
-                const urlObj = new URL(url);
-                const uuid = urlObj.searchParams.get("uuid");
-
-                if (!uuid) {
-                    throw new Error("No UUID found in redirect URL");
-                }
-
-                // Exchange UUID for tokens
-                const tokenResponse = await fetch(`${BACKEND_URL}/auth/exchange?uuid=${uuid}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
-
-                if (!tokenResponse.ok) {
-                    throw new Error("Failed to exchange UUID for tokens");
-                }
-
-                const json = await tokenResponse.json();
-                const { access_token, refresh_token } = json.data;
-                // Store tokens using platform-specific storage
-                await storage.setAccessToken(access_token);
-                if (!PLATFORM_CONFIG.IS_WEB) {
-                    await storage.setRefreshToken(refresh_token);
-                }
-
-                // Get user info using the access token
-                const userResponse = await fetchWithAuth("/api/v1/user/me");
-
-                if (!userResponse.ok) {
-                    throw new Error("Failed to get user info");
-                }
-
-                const userData = await userResponse.json();
-
-                // Create a properly formatted user object
-                const formattedUser: User = {
-                    id: userData.id || '',
-                    email: userData.email || null,
-                    firstName: userData.firstName || null,
-                    lastName: userData.lastName || null,
-                    photo: userData.photo || undefined,
-                    active: userData.active || false,
-                };
-
-                // Store user data and update state
-                await storage.setUser(formattedUser);
-                setUser(formattedUser);
-
-                // Notify parent window about successful authentication
-                if (window.opener) {
-                    console.log('Sending message to opener window'); // Debug log
-                    window.opener.postMessage({
-                        type: 'AUTH_SUCCESS',
-                        user: formattedUser,
-                        access_token: access_token,
-                        refresh_token: refresh_token
-                    }, '*');
-
-                    // Wait a bit before closing to ensure message is sent
-                    setTimeout(() => {
-                        window.close();
-                    }, 100);
-                } else {
-                    // If we're in the parent window, redirect to tabs
-                    console.log('No opener window, redirecting directly'); // Debug log
-                    router.replace("/(tabs)");
-                }
-                return;
-            }
-
-            // Handle mobile platforms
-            if (Platform.OS === 'android' || Platform.OS === 'ios') {
-                const urlObj = new URL(url);
-                const uuid = urlObj.searchParams.get("uuid");
-
-                if (!uuid) {
-                    throw new Error("No UUID found in redirect URL");
-                }
-
-                // Exchange UUID for tokens
-                const tokenResponse = await fetch(`${BACKEND_URL}/auth/exchange?uuid=${uuid}`, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                });
-
-                if (!tokenResponse.ok) {
-                    throw new Error("Failed to exchange UUID for tokens");
-                }
-
-                const { access_token, refresh_token } = await tokenResponse.json();
-
-                // Store tokens using platform-specific storage
-                await storage.setAccessToken(access_token);
-                await storage.setRefreshToken(refresh_token);
-
-                // Get user info using the access token
-                const userResponse = await fetchWithAuth("/api/v1/user/me");
-
-                if (!userResponse.ok) {
-                    throw new Error("Failed to get user info");
-                }
-
-                const userData = await userResponse.json();
-
-                // Create a properly formatted user object
-                const formattedUser: User = {
-                    id: userData.id || '',
-                    email: userData.email || null,
-                    firstName: userData.firstName || null,
-                    lastName: userData.lastName || null,
-                    photo: userData.photo || undefined,
-                    active: userData.active || false,
-                };
-
-                // Store user data and update state
-                await storage.setUser(formattedUser);
-                setUser(formattedUser);
-
-                // Navigate to dashboard
-                router.replace("/(tabs)");
-            }
-        } catch (error) {
-            console.error("Error handling auth redirect:", error);
-            throw error;
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     // Add a function to check and refresh token if needed
     const checkAndRefreshToken = async () => {
@@ -446,25 +253,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const currentAccessToken = await storage.getAccessToken();
             if (!currentAccessToken) return false;
 
-            if (PLATFORM_CONFIG.IS_WEB) {
-                // For web, the refresh token is handled by HTTP-only cookies
-                const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
-                    method: "POST",
-                    credentials: 'include', // Include cookies
-                });
-
-                if (!response.ok) {
-                    throw new Error("Failed to refresh token");
-                }
-
-                const { access_token } = await response.json();
-                await storage.setAccessToken(access_token);
-                return true;
-            } else {
                 const refresh_token = await storage.getRefreshToken();
                 if (!refresh_token) return false;
 
-                const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+                const response = await fetch(`${API_CONFIG.BACKEND_URL}${AUTH_CONFIG.AUTH_ENDPOINTS.REFRESH}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -476,11 +268,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     throw new Error("Failed to refresh token");
                 }
 
-                const { access_token, new_refresh_token } = await response.json();
-                await storage.setAccessToken(access_token);
+                const json = await response.json();
+            const { access_token, new_refresh_token } = json.data;
+            await storage.setAccessToken(access_token);
                 await storage.setRefreshToken(new_refresh_token);
                 return true;
-            }
+
         } catch (error) {
             console.error("Error refreshing token:", error);
             return false;
