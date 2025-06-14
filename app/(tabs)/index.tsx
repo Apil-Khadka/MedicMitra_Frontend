@@ -7,7 +7,7 @@ import React, { useEffect } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spacing, Typography } from '../../constants/Colors';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { translations, useLanguage } from '../../contexts/LanguageContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -204,7 +204,7 @@ export default function HomeScreen() {
     });
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
             <LinearGradient
                 colors={[
                     theme.colors.background,
@@ -239,9 +239,7 @@ export default function HomeScreen() {
             <View style={styles.content}>
                 <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                     <Text style={styles.subtitle}>
-                        {language === 'en'
-                            ? 'Your Digital Health Assistant'
-                            : 'आपको डिजिटल स्वास्थ्य सहायक'}
+                        {translations[language].subtitle}
                     </Text>
                 </Animated.View>
 
@@ -262,7 +260,10 @@ export default function HomeScreen() {
                         <Ionicons name="camera" style={styles.cameraIcon} />
                     </TouchableOpacity>
                     <Text style={styles.cameraText}>
-                        {language === 'en' ? 'Scan Medicine' : 'औषधि स्क्यान गर्नुहोस्'}
+                        {language === 'en' ? 'Scan Medicine' :
+                            language === 'ne' ? 'औषधि स्क्यान गर्नुहोस्' :
+                                language === 'bh' ? 'औषधि स्क्यान करीं' :
+                                    'औषधि स्क्यान करू'}
                     </Text>
                 </Animated.View>
 
@@ -315,7 +316,10 @@ export default function HomeScreen() {
                             color={theme.colors.primary}
                         />
                         <Text style={[styles.helpText, { color: theme.colors.primary }]}>
-                            {language === 'en' ? 'How it works' : 'कसरी काम गर्छ'}
+                            {language === 'en' ? 'How it works' :
+                                language === 'ne' ? 'कसरी काम गर्छ' :
+                                    language === 'bh' ? 'कइसे काम करेला' :
+                                        'कहिया काम करैत अछि'}
                         </Text>
                     </View>
                 </TouchableOpacity>

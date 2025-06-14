@@ -13,13 +13,13 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../../constants/Colors';
 import { useAuth } from '../../contexts/AuthContext';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { Language, useLanguage } from '../../contexts/LanguageContext';
 
 interface ProfileSectionProps {
     title: string;
     children: React.ReactNode;
     colors: typeof Colors.light | typeof Colors.dark;
-    language: 'en' | 'ne';
+    language: Language;
 }
 
 const ProfileSection = ({ title, children, colors, language }: ProfileSectionProps) => (
@@ -119,6 +119,39 @@ export default function ProfileScreen() {
         console.log('Help center');
     };
 
+    const getTranslatedText = (key: string) => {
+        switch (language) {
+            case 'en':
+                return key === 'editProfile' ? 'Edit Profile' :
+                    key === 'accountSettings' ? 'Account Settings' :
+                        key === 'notifications' ? 'Notifications' :
+                            key === 'privacy' ? 'Privacy & Security' :
+                                key === 'support' ? 'Support' :
+                                    key === 'helpCenter' ? 'Help Center' : '';
+            case 'ne':
+                return key === 'editProfile' ? 'प्रोफाइल सम्पादन गर्नुहोस्' :
+                    key === 'accountSettings' ? 'खाता सेटिङहरू' :
+                        key === 'notifications' ? 'सूचनाहरू' :
+                            key === 'privacy' ? 'गोपनीयता र सुरक्षा' :
+                                key === 'support' ? 'सहयोग' :
+                                    key === 'helpCenter' ? 'सहयोग केन्द्र' : '';
+            case 'bh':
+                return key === 'editProfile' ? 'प्रोफाइल एडिट करीं' :
+                    key === 'accountSettings' ? 'खाता सेटिंग' :
+                        key === 'notifications' ? 'नोटिफिकेशन' :
+                            key === 'privacy' ? 'प्राइवेसी आ सुरक्षा' :
+                                key === 'support' ? 'सहयोग' :
+                                    key === 'helpCenter' ? 'हेल्प सेंटर' : '';
+            case 'mai':
+                return key === 'editProfile' ? 'प्रोफाइल एडिट करू' :
+                    key === 'accountSettings' ? 'खाता सेटिंग' :
+                        key === 'notifications' ? 'नोटिफिकेशन' :
+                            key === 'privacy' ? 'प्राइवेसी आ सुरक्षा' :
+                                key === 'support' ? 'सहयोग' :
+                                    key === 'helpCenter' ? 'हेल्प सेंटर' : '';
+        }
+    };
+
     return (
         <ScrollView
             style={[styles.container, { backgroundColor: colors.background }]}
@@ -170,25 +203,25 @@ export default function ProfileScreen() {
                         entering={FadeInDown.delay(400).duration(500).springify()}
                         style={[styles.editButtonText, { color: colors.buttonText }]}
                     >
-                        {language === 'en' ? 'Edit Profile' : 'प्रोफाइल सम्पादन गर्नुहोस्'}
+                        {getTranslatedText('editProfile')}
                     </Animated.Text>
                 </TouchableOpacity>
             </Animated.View>
 
             <ProfileSection
-                title={language === 'en' ? 'Account Settings' : 'खाता सेटिङहरू'}
+                title={getTranslatedText('accountSettings')}
                 colors={colors}
                 language={language}
             >
                 <ProfileItem
                     icon="notifications-outline"
-                    title={language === 'en' ? 'Notifications' : 'सूचनाहरू'}
+                    title={getTranslatedText('notifications')}
                     onPress={handleNotifications}
                     colors={colors}
                 />
                 <ProfileItem
                     icon="shield-checkmark-outline"
-                    title={language === 'en' ? 'Privacy & Security' : 'गोपनीयता र सुरक्षा'}
+                    title={getTranslatedText('privacy')}
                     onPress={handlePrivacy}
                     colors={colors}
                     isLast
@@ -196,13 +229,13 @@ export default function ProfileScreen() {
             </ProfileSection>
 
             <ProfileSection
-                title={language === 'en' ? 'Support' : 'सहयोग'}
+                title={getTranslatedText('support')}
                 colors={colors}
                 language={language}
             >
                 <ProfileItem
                     icon="help-circle-outline"
-                    title={language === 'en' ? 'Help Center' : 'सहयोग केन्द्र'}
+                    title={getTranslatedText('helpCenter')}
                     onPress={handleHelp}
                     colors={colors}
                     isLast

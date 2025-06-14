@@ -1,10 +1,11 @@
+import { Language, useLanguage } from '@/contexts/LanguageContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spacing, Typography } from '../../constants/Colors';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { fetchWithAuth } from '../../utils/api';
 
 interface Medicine {
     id: string;
@@ -130,16 +131,36 @@ export default function DatabaseScreen() {
         },
     });
 
+    const getErrorMessage = (language: Language) => {
+        switch (language) {
+            case 'en':
+                return 'Failed to search medicines';
+            case 'ne':
+                return 'औषधि खोज्न असफल भयो';
+            case 'bh':
+                return 'औषधि खोजे में असफल भइल';
+            case 'mai':
+                return 'औषधि खोजबाक कोशिश असफल भेल';
+        }
+    };
+
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
 
         setIsLoading(true);
         try {
-            // TODO: Implement actual API call to fetch medicines
-            // For now, we'll just show an empty state
-            setMedicines([]);
+            const response = await fetchWithAuth(`/api/medicines/search?q=${encodeURIComponent(searchQuery)}`);
+            if (!response.ok) throw new Error('Search failed');
+
+            const data = await response.json();
+            console.log('Search results in', language, ':', data);
+            setMedicines(data.medicines || []);
         } catch (error) {
             console.error('Error searching medicines:', error);
+            Alert.alert(
+                'Error',
+                getErrorMessage(language)
+            );
         } finally {
             setIsLoading(false);
         }

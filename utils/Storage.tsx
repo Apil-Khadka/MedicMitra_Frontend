@@ -62,16 +62,20 @@ export const storage = {
     },
     async setLanguage(language: string) {
         try {
+            console.log('Storage: Setting language to:', language);
             await SecureStore.setItemAsync(AUTH_CONFIG.TOKEN_KEYS.LANGUAGE, language);
+            console.log('Storage: Language saved successfully');
         } catch (error) {
-            console.error('Error storing language:', error);
+            console.error('Storage: Error storing language:', error);
         }
     },
     async getLanguage() {
         try {
-            return await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.LANGUAGE);
+            const language = await SecureStore.getItemAsync(AUTH_CONFIG.TOKEN_KEYS.LANGUAGE);
+            console.log('Storage: Retrieved language:', language);
+            return language;
         } catch (error) {
-            console.error('Error getting language:', error);
+            console.error('Storage: Error getting language:', error);
             return null;
         }
     }

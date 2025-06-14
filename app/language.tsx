@@ -1,21 +1,41 @@
-import { translations, useLanguage } from '@/contexts/LanguageContext';
-import { router } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
+import { Language, translations, useLanguage } from '@/contexts/LanguageContext';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Image, StyleSheet, TouchableOpacity, useColorScheme, View, ViewStyle } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ThemedText from '../components/ThemedText';
-import { BorderRadius, Colors, Shadows, Spacing } from '../constants/Colors';
+import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/Colors';
 
 export default function LanguageSelection() {
     const insets = useSafeAreaInsets();
     const { language, setLanguage } = useLanguage();
+    const router = useRouter();
+    const { user } = useAuth();
+    const [isLoading, setIsLoading] = useState(false);
     const colorScheme = useColorScheme();
     const colors = Colors[colorScheme ?? 'light'];
 
-    const handleLanguageSelect = async (selectedLanguage: 'en' | 'ne' | 'bh' | 'mai') => {
-        await setLanguage(selectedLanguage);
-        router.replace('/(auth)/sign-in');
+    const handleLanguageSelect = async (lang: Language) => {
+        try {
+            setIsLoading(true);
+            await setLanguage(lang);
+            // Small delay to ensure language is saved and context is updated
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            if (user) {
+                router.replace('/(tabs)');
+            } else {
+                router.replace('/sign-in');
+            }
+        } catch (error) {
+            console.error('Error setting language:', error);
+            Alert.alert('Error', 'Failed to set language. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -65,9 +85,11 @@ export default function LanguageSelection() {
                                 {
                                     backgroundColor: language === 'en' ? colors.primary : colors.card,
                                     borderColor: colors.border,
-                                } as ViewStyle
+                                } as ViewStyle,
+                                { opacity: isLoading ? 0.7 : 1 }
                             ]}
                             onPress={() => handleLanguageSelect('en')}
+                            disabled={isLoading}
                         >
                             <ThemedText
                                 variant="button"
@@ -84,9 +106,11 @@ export default function LanguageSelection() {
                                 {
                                     backgroundColor: language === 'ne' ? colors.primary : colors.card,
                                     borderColor: colors.border,
-                                } as ViewStyle
+                                } as ViewStyle,
+                                { opacity: isLoading ? 0.7 : 1 }
                             ]}
                             onPress={() => handleLanguageSelect('ne')}
+                            disabled={isLoading}
                         >
                             <ThemedText
                                 variant="button"
@@ -103,9 +127,11 @@ export default function LanguageSelection() {
                                 {
                                     backgroundColor: language === 'bh' ? colors.primary : colors.card,
                                     borderColor: colors.border,
-                                } as ViewStyle
+                                } as ViewStyle,
+                                { opacity: isLoading ? 0.7 : 1 }
                             ]}
                             onPress={() => handleLanguageSelect('bh')}
+                            disabled={isLoading}
                         >
                             <ThemedText
                                 variant="button"
@@ -122,9 +148,11 @@ export default function LanguageSelection() {
                                 {
                                     backgroundColor: language === 'mai' ? colors.primary : colors.card,
                                     borderColor: colors.border,
-                                } as ViewStyle
+                                } as ViewStyle,
+                                { opacity: isLoading ? 0.7 : 1 }
                             ]}
                             onPress={() => handleLanguageSelect('mai')}
+                            disabled={isLoading}
                         >
                             <ThemedText
                                 variant="button"
@@ -136,6 +164,11 @@ export default function LanguageSelection() {
                     </View>
                 </Animated.View>
             </Animated.View>
+            {isLoading && (
+                <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#0000ff" />
+                </View>
+            )}
         </View>
     );
 }
@@ -189,5 +222,15 @@ const styles = StyleSheet.create({
     },
     languageButtonActive: {
         ...Shadows.md,
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

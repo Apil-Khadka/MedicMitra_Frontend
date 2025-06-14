@@ -1,7 +1,5 @@
 import { storage } from '@/utils/Storage';
-import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 
 export type Language = 'en' | 'ne' | 'bh' | 'mai';
 
@@ -28,39 +26,54 @@ export const useLanguage = () => {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const [language, setLanguageState] = useState<Language>('en');
     const [isLoading, setIsLoading] = useState(true);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
-        loadSavedLanguage();
+        const initializeLanguage = async () => {
+            try {
+                const savedLanguage = await storage.getLanguage();
+                console.log('Retrieved saved language:', savedLanguage);
+                if (savedLanguage && isValidLanguage(savedLanguage)) {
+                    console.log('Setting language to:', savedLanguage);
+                    setLanguageState(savedLanguage as Language);
+                } else {
+                    console.log('Invalid or no saved language, using default:', 'en');
+                }
+                setIsInitialized(true);
+            } catch (error) {
+                console.error('Error loading language:', error);
+                setIsInitialized(true);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        initializeLanguage();
     }, []);
 
-    const loadSavedLanguage = async () => {
-        try {
-            if (Platform.OS === 'web') {
-                const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) as Language;
-                if (savedLanguage) {
-                    setLanguageState(savedLanguage);
-                }
-            } else {
-                const savedLanguage = await SecureStore.getItemAsync(LANGUAGE_STORAGE_KEY) as Language;
-                if (savedLanguage) {
-                    setLanguageState(savedLanguage);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading language:', error);
-        } finally {
-            setIsLoading(false);
-        }
+    const isValidLanguage = (lang: string): lang is Language => {
+        const isValid = ['en', 'ne', 'bh', 'mai'].includes(lang);
+        console.log('Validating language:', lang, 'isValid:', isValid);
+        return isValid;
     };
 
     const setLanguage = async (lang: Language) => {
         try {
+            console.log('Setting new language:', lang);
             await storage.setLanguage(lang);
+            console.log('Language saved to storage');
             setLanguageState(lang);
+            // Force a re-render of components using the language
+            setIsInitialized(false);
+            setTimeout(() => setIsInitialized(true), 0);
         } catch (error) {
             console.error('Error saving language:', error);
         }
     };
+
+    if (!isInitialized) {
+        return null;
+    }
 
     return (
         <LanguageContext.Provider value={{ language, setLanguage, isLoading, translations }}>
