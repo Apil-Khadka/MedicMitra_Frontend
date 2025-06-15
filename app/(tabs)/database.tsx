@@ -1,11 +1,11 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTheme } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AUTH_CONFIG } from '@/config/constants';
-import { Spacing } from '@/constants/Colors';
-import { fetchWithAuth } from '@/utils/api';
+import { AUTH_CONFIG } from '../../config/constants';
+import { Spacing, Typography } from '../../constants/Colors';
+import { fetchWithAuth } from '../../utils/api';
 import { BackButton } from '../components/database/BackButton';
 import { MedicineList } from '../components/database/MedicineList';
 import { SearchBar } from '../components/database/SearchBar';
@@ -22,6 +22,7 @@ export default function DatabaseScreen() {
     const [cache, setCache] = useState<Cache>({ topics: [], medicines: {} });
     const [filteredTopics, setFilteredTopics] = useState<Topic[]>([]);
     const [filteredMedicines, setFilteredMedicines] = useState<Medicine[]>([]);
+    const [isDirectSearch, setIsDirectSearch] = useState(false);
 
     const styles = StyleSheet.create({
         container: {
@@ -32,28 +33,58 @@ export default function DatabaseScreen() {
             padding: Spacing.lg,
             gap: Spacing.md,
         },
+        searchModeToggle: {
+            flexDirection: 'row',
+            justifyContent: 'center',
+            gap: Spacing.md,
+            marginBottom: Spacing.sm,
+        },
+        searchModeButton: {
+            paddingHorizontal: Spacing.md,
+            paddingVertical: Spacing.sm,
+            borderRadius: 8,
+            backgroundColor: theme.colors.card,
+        },
+        searchModeButtonActive: {
+            backgroundColor: theme.colors.primary,
+        },
+        searchModeText: {
+            color: theme.colors.text,
+            ...Typography.button,
+        },
+        searchModeTextActive: {
+            color: '#fff',
+        },
     });
 
     const fetchTopics = async () => {
+        if (cache.topics.length > 0) {
+            console.error('[Database] Using cached topics');
+            setFilteredTopics(cache.topics);
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.FETCH_ALL_TOPICS);
             if (!response.ok) throw new Error('Failed to fetch topics');
 
             const json = await response.json();
-            console.error('[Database] Topics data:', json.data);
+            console.error('[Database] Topics:', json.data);
+
             setCache(prev => ({ ...prev, topics: json.data }));
             setFilteredTopics(json.data);
         } catch (error) {
             console.error('[Database] Error fetching topics:', error);
             Alert.alert(
                 'Error',
-                language === 'en' ? 'Failed to fetch topics' : 'विषयहरू प्राप्त गर्न असफल भयो'
+                language === 'en' ? 'Failed to fetch topics' : 'विषय प्राप्त गर्न असफल भयो'
             );
         } finally {
             setIsLoading(false);
         }
     };
+
     const searchMedicines = async (term: string) => {
         if (!term.trim()) {
             setFilteredMedicines([]);
@@ -62,13 +93,16 @@ export default function DatabaseScreen() {
 
         setIsLoading(true);
         try {
-            const url = `${AUTH_CONFIG.AUTH_ENDPOINTS.MEDICINE_SEARCH}?term=${encodeURIComponent(term)}`;
+            const url = `${AUTH_CONFIG.AUTH_ENDPOINTS.MEDICINE_SEARCH}/${encodeURIComponent(term)}`;
             const response = await fetchWithAuth(url);
-            if (!response.ok) throw new Error('Failed to fetch medicines');
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => '');
+                throw new Error(`Failed to fetch medicines. Status: ${response.status}. Body: ${errorText}`);
+            }
             const json = await response.json();
             setFilteredMedicines(json.data || []);
-        } catch (error) {
-            console.error('[Database] Error searching medicines:', error);
+        } catch (error: any) {
+            console.error('[Database] Error searching medicines:', error?.message || error, error);
             Alert.alert(
                 'Error',
                 language === 'en' ? 'Failed to search medicines' : 'औषधि खोज्न असफल भयो'
@@ -116,47 +150,61 @@ export default function DatabaseScreen() {
 
     const handleTopicPress = (topic: Topic) => {
         setSelectedTopic(topic);
+        setIsDirectSearch(false);
         fetchMedicinesForTopic(topic.id);
     };
 
     const handleBackPress = () => {
         setSelectedTopic(null);
         setFilteredMedicines([]);
+        setIsDirectSearch(false);
     };
 
     const handleSearch = useCallback(() => {
-        if (!searchQuery.trim()) {
+        if (isDirectSearch) {
+            searchMedicines(searchQuery);
+        } else if (!searchQuery.trim()) {
             if (selectedTopic) {
                 setFilteredMedicines(cache.medicines[selectedTopic.id] || []);
             } else {
                 setFilteredTopics(cache.topics);
             }
-            return;
-        }
-
-        const query = searchQuery.toLowerCase();
-        if (selectedTopic) {
-            const medicines = cache.medicines[selectedTopic.id] || [];
-            const filtered = medicines.filter(medicine =>
-                medicine.name.toLowerCase().includes(query) ||
-                medicine.atcCode.toLowerCase().includes(query)
-            );
-            setFilteredMedicines(filtered);
         } else {
-            const filtered = cache.topics.filter(topic =>
-                topic.name.toLowerCase().includes(query)
-            );
-            setFilteredTopics(filtered);
+            const query = searchQuery.toLowerCase();
+            if (selectedTopic) {
+                const medicines = cache.medicines[selectedTopic.id] || [];
+                const filtered = medicines.filter(medicine =>
+                    (medicine.name && medicine.name.toLowerCase().includes(query)) ||
+                    (medicine.atcCode && medicine.atcCode.toLowerCase().includes(query))
+                );
+                setFilteredMedicines(filtered);
+            } else {
+                const filtered = cache.topics.filter(topic =>
+                    topic.name.toLowerCase().includes(query)
+                );
+                setFilteredTopics(filtered);
+            }
         }
-    }, [searchQuery, selectedTopic, cache]);
+    }, [searchQuery, selectedTopic, cache, isDirectSearch]);
 
     const handleClearSearch = () => {
         setSearchQuery('');
-        handleSearch();
+        if (isDirectSearch) {
+            setFilteredMedicines([]);
+        } else {
+            handleSearch();
+        }
     };
 
     const handleLanguageChange = (newLanguage: 'en' | 'ne' | 'bh' | 'mai') => {
         setLanguage(newLanguage);
+    };
+
+    const toggleSearchMode = () => {
+        setIsDirectSearch(!isDirectSearch);
+        setSearchQuery('');
+        setFilteredMedicines([]);
+        setSelectedTopic(null);
     };
 
     return (
@@ -169,13 +217,45 @@ export default function DatabaseScreen() {
                         theme={theme}
                     />
                 )}
+                <View style={styles.searchModeToggle}>
+                    <TouchableOpacity
+                        style={[
+                            styles.searchModeButton,
+                            !isDirectSearch && styles.searchModeButtonActive
+                        ]}
+                        onPress={() => !isDirectSearch || toggleSearchMode()}
+                    >
+                        <Text style={[
+                            styles.searchModeText,
+                            !isDirectSearch && styles.searchModeTextActive
+                        ]}>
+                            {language === 'en' ? 'By Topic' : 'विषय अनुसार'}
+                        </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[
+                            styles.searchModeButton,
+                            isDirectSearch && styles.searchModeButtonActive
+                        ]}
+                        onPress={() => isDirectSearch || toggleSearchMode()}
+                    >
+                        <Text style={[
+                            styles.searchModeText,
+                            isDirectSearch && styles.searchModeTextActive
+                        ]}>
+                            {language === 'en' ? 'Direct Search' : 'सिधा खोज'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
                 <SearchBar
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     onSubmit={handleSearch}
-                    placeholder={selectedTopic
+                    placeholder={isDirectSearch
                         ? (language === 'en' ? 'Search medicines...' : 'औषधि खोज्नुहोस्...')
-                        : (language === 'en' ? 'Search topics...' : 'विषय खोज्नुहोस्...')}
+                        : selectedTopic
+                            ? (language === 'en' ? 'Search medicines...' : 'औषधि खोज्नुहोस्...')
+                            : (language === 'en' ? 'Search topics...' : 'विषय खोज्नुहोस्...')}
                     onClear={handleClearSearch}
                     theme={theme}
                     language={language}
@@ -188,7 +268,7 @@ export default function DatabaseScreen() {
                     color={theme.colors.primary}
                     style={{ flex: 1 }}
                 />
-            ) : selectedTopic ? (
+            ) : isDirectSearch || selectedTopic ? (
                 <MedicineList
                     medicines={filteredMedicines}
                     theme={theme}
