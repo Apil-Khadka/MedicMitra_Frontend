@@ -60,8 +60,7 @@ export default function HomeScreen() {
 
     const handleCameraPress = async () => {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        // TODO: Implement camera screen
-        console.log('Camera pressed');
+        router.push('/database' as any);
     };
 
     const handleHelpPress = () => {
@@ -257,13 +256,13 @@ export default function HomeScreen() {
                         onPress={handleCameraPress}
                         activeOpacity={0.8}
                     >
-                        <Ionicons name="camera" style={styles.cameraIcon} />
+                        <Ionicons name="server" style={styles.cameraIcon} />
                     </TouchableOpacity>
                     <Text style={styles.cameraText}>
-                        {language === 'en' ? 'Scan Medicine' :
-                            language === 'ne' ? 'औषधि स्क्यान गर्नुहोस्' :
-                                language === 'bh' ? 'औषधि स्क्यान करीं' :
-                                    'औषधि स्क्यान करू'}
+                        {language === 'en' ? 'Full Database' :
+                            language === 'ne' ? 'पूर्ण डाटाबेस' :
+                                language === 'bh' ? 'पूर्ण डाटाबेस' :
+                                    'पूर्ण डाटाबेस'}
                     </Text>
                 </Animated.View>
 

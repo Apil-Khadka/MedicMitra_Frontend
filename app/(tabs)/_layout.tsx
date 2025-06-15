@@ -190,7 +190,7 @@ function RootLayoutContent() {
                                                     <Text style={[styles.menuText, { color: colors.text }]}>
                                                         {language === 'en' ? 'Full Database' : 'पूर्ण डाटाबेस'}
                                                     </Text>
-                                                </View>
+                                    f            </View>
                                             </MenuOption>
                                             <MenuOption onSelect={handleHistoryPress}>
                                                 <View style={styles.menuItem}>

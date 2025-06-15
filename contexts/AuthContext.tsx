@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 credentials: 'omit',
                 body: refresh_token
             });
-            console.error("signout response",response);
+            console.error("signout response",response.json());
             await storage.clear();
             setUser(null);
             router.replace("/");

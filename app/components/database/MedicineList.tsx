@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Spacing, Typography } from '../../../constants/Colors';
+import { Spacing, Typography } from '@/constants/Colors';
 import { EmptyState } from './EmptyState';
 import { MedicineDetails } from './MedicineDetails';
 import { Medicine, MedicineListProps } from './types';
