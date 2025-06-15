@@ -54,6 +54,30 @@ export default function DatabaseScreen() {
             setIsLoading(false);
         }
     };
+    const searchMedicines = async (term: string) => {
+        if (!term.trim()) {
+            setFilteredMedicines([]);
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const url = `${AUTH_CONFIG.AUTH_ENDPOINTS.MEDICINE_SEARCH}?term=${encodeURIComponent(term)}`;
+            const response = await fetchWithAuth(url);
+            if (!response.ok) throw new Error('Failed to fetch medicines');
+            const json = await response.json();
+            setFilteredMedicines(json.data || []);
+        } catch (error) {
+            console.error('[Database] Error searching medicines:', error);
+            Alert.alert(
+                'Error',
+                language === 'en' ? 'Failed to search medicines' : 'औषधि खोज्न असफल भयो'
+            );
+            setFilteredMedicines([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const fetchMedicinesForTopic = async (topicId: string) => {
         if (cache.medicines[topicId]) {

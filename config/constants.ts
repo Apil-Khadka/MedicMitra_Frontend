@@ -30,6 +30,7 @@ export const AUTH_CONFIG = {
         MEDICINE_GENERIC_NAMES: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/medicines/genericName`,
         MEDICINE_DOSAGE_FORMS: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/medicines/dosageForms`,
         MEDICINE_DISEASES: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/medicines/diseases`,
+        MEDICINE_SEARCH: `${API_CONFIG.API_PREFIX}/${API_CONFIG.API_VERSION}/medicines/search`,
     },
 } as const;
 

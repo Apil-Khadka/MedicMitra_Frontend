@@ -101,6 +101,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             setIsLoading(true);
             const refresh_token = await storage.getRefreshToken();
+            if (!refresh_token) {
+                await storage.clear();
+                setUser(null);
+                router.replace("/");
+                return;
+            }
             const response = await fetchWithAuth(AUTH_CONFIG.AUTH_ENDPOINTS.LOGOUT, {
                 method: "POST",
                 credentials: 'omit',
